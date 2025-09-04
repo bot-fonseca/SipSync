@@ -57,7 +57,7 @@ class _LoginPageState extends State<LoginPage> {
                 onEditingComplete: () => setState(() {}),
               ),
               SizedBox(height: 20),
-              ElevatedButton(
+              FilledButton(
                 onPressed: () {
                   onLoginPressed();
                 },

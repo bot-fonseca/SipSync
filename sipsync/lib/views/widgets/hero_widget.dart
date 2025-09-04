@@ -22,13 +22,13 @@ class HeroWidget extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         Text(
           title,
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 50, // a bit smaller
+            fontSize: 50, 
             color: Color.fromARGB(255, 3, 100, 150),
           ),
         ),
