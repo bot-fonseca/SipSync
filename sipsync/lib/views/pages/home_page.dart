@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sipsync/data/constants.dart';
+import 'package:sipsync/views/widgets/container_widget.dart';
 import 'package:sipsync/views/widgets/hero_widget.dart';
 
 class HomePage extends StatelessWidget {
@@ -8,29 +8,30 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.symmetric(horizontal: 20),
       child: SingleChildScrollView(
         child: Column(
           children: [
-            HeroWidget(title: '',),
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Card(
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Welcome to SipSync!",
-                        style: KTextStyle.titleTealText,
-                      ),
-                      Text("Description!"),
-                    ],
-                  ),
-                ),
-              ),
+            HeroWidget(title: 'Home'),
+            ContainerWidget(
+              title: 'Welcome to SipSync!',
+              description: 'Description typeee',
+            ),
+            ContainerWidget(
+              title: 'Welcome to SipSync!',
+              description: 'Description typeee',
+            ),
+            ContainerWidget(
+              title: 'Welcome to SipSync!',
+              description: 'Description typeee',
+            ),
+            ContainerWidget(
+              title: 'Welcome to SipSync!',
+              description: 'Description typeee',
+            ),
+            ContainerWidget(
+              title: 'Welcome to SipSync!',
+              description: 'Description typeee',
             ),
           ],
         ),
