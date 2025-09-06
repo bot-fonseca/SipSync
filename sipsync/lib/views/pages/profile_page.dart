@@ -12,7 +12,7 @@ class ProfilePage extends StatelessWidget {
       child: Column(
         children: [
           CircleAvatar(
-            radius: 50,
+            radius: 70,
             backgroundImage: AssetImage('assets/images/water2.jpg'),
           ),
           ListTile(

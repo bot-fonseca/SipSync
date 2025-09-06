@@ -12,13 +12,15 @@ class HeroWidget extends StatelessWidget {
       children: [
         Hero(
           tag: 'hero1',
-          child: SizedBox(
-            width: 200,
-            height: 70,
-            child: Image.asset(
-              'assets/images/logo.png',
-               color: const Color.fromARGB(255, 3, 100, 150),
-              // colorBlendMode: BlendMode.color, //color
+          child: AspectRatio(
+            aspectRatio: 4,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.asset(
+                'assets/images/logo.png',
+                 color: const Color.fromARGB(255, 3, 100, 150),
+                // colorBlendMode: BlendMode.color, //color
+              ),
             ),
           ),
         ),

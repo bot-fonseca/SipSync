@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:sipsync/views/pages/register_page.dart';
+import 'package:sipsync/views/pages/welcome_page.dart';
 import 'package:sipsync/views/widget_tree.dart';
 import 'package:sipsync/views/widgets/hero_widget.dart';
+import 'package:sipsync/views/widgets/square_widget.dart';
+import 'package:sipsync/views/widgets/texfield_widget.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.title});
@@ -27,46 +31,109 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        leading: BackButton(
+          onPressed: () {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder: (context) {
+                  return WelcomePage();
+                },
+              ),
+              (route) => false,
+            );
+          },
+        ),
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(25.0),
-          child: Column(
-            children: [
-              SizedBox(width: 200, child: HeroWidget(title: widget.title)),
-              SizedBox(height: 30),
-              TextField(
-                controller: controllerEmail,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+          child: Center(
+            child: Column(
+              children: [
+                SizedBox(width: 400, child: HeroWidget(title: widget.title)),
+                SizedBox(height: 15),
+
+                //email
+                TextFieldWidget(
                   hintText: 'Email',
+                  controller: controllerEmail,
+                  obscureText: false,
                 ),
-                onEditingComplete: () => setState(() {}),
-              ),
-              SizedBox(height: 12),
-              TextField(
-                controller: controllerPassword,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                //password
+                TextFieldWidget(
                   hintText: 'Password',
+                  controller: controllerPassword,
+                  obscureText: true,
                 ),
-                onEditingComplete: () => setState(() {}),
-              ),
-              SizedBox(height: 20),
-              FilledButton(
-                onPressed: () {
-                  onLoginPressed();
-                },
-                style: ElevatedButton.styleFrom(
-                  minimumSize: Size(double.infinity, 50),
+                //forgot password
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {},
+                    child: Text('Forgot Password?'),
+                  ),
                 ),
-                child: Text(widget.title),
-              ),
-            ],
+                SizedBox(height: 10),
+                //login button
+                FilledButton(
+                  onPressed: () {
+                    onLoginPressed();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(double.infinity, 50),
+                  ),
+                  child: Text(widget.title),
+                ),
+                SizedBox(height: 50),
+                Row(
+                  children: [
+                    Expanded(child: Divider(thickness: 1.5)),
+                    Text(
+                      'Or continue with',
+                      style: TextStyle(
+                        color: const Color.fromARGB(255, 117, 117, 117),
+                      ),
+                    ),
+                    Expanded(child: Divider(thickness: 1.5)),
+                  ],
+                ),
+                SizedBox(height: 70),
+
+                //other login options
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SquareWidget(imagePath: 'assets/images/google.png'),
+                    SizedBox(width: 50),
+                    SquareWidget(imagePath: 'assets/images/apple.png'),
+                  ],
+                ),
+                SizedBox(height: 65),
+                //sign up option
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Don\'t have an account?'),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) {
+                              return RegisterPage();
+                            },
+                          ),
+                          (route) => false,
+                        );
+                      },
+                      child: Text('Sign Up'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
