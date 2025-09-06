@@ -12,7 +12,16 @@ class HomePage extends StatelessWidget {
       child: SingleChildScrollView(
         child: Column(
           children: [
+            SizedBox(height: 10),
             HeroWidget(title: 'Home'),
+            ContainerWidget(
+              title: 'Welcome to SipSync!',
+              description: 'Description typeee',
+            ),
+            ContainerWidget(
+              title: 'Welcome to SipSync!',
+              description: 'Description typeee',
+            ),
             ContainerWidget(
               title: 'Welcome to SipSync!',
               description: 'Description typeee',
