@@ -4,10 +4,11 @@ import 'package:sipsync/data/notifiers.dart';
 import 'package:sipsync/views/pages/home_page.dart';
 import 'package:sipsync/views/pages/profile_page.dart';
 import 'package:sipsync/views/pages/setting_page.dart';
+import 'package:sipsync/views/pages/statistics_page.dart';
 import 'package:sipsync/views/widgets/navbar_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-List<Widget> pages = [HomePage(), ProfilePage()];
+List<Widget> pages = [HomePage(), StatisticsPage(), ProfilePage()];
 
 class WidgetTree extends StatelessWidget {
   const WidgetTree({super.key});

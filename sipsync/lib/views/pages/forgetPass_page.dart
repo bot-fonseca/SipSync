@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:sipsync/views/pages/login_page.dart';
-import 'package:sipsync/views/pages/welcome_page.dart';
 import 'package:sipsync/views/widgets/hero_widget.dart';
 import 'package:sipsync/views/widgets/texfield_widget.dart';
 
-class RegisterPage extends StatelessWidget {
-  const RegisterPage({super.key});
+class ForgetpassPage extends StatelessWidget {
+  const ForgetpassPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -13,14 +12,13 @@ class RegisterPage extends StatelessWidget {
       appBar: AppBar(
         leading: BackButton(
           onPressed: () {
-            Navigator.pushAndRemoveUntil(
+            Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) {
-                  return WelcomePage();
+                  return LoginPage(title: 'Login');
                 },
-              ),
-              (route) => false,
+              )
             );
           },
         ),
@@ -30,26 +28,10 @@ class RegisterPage extends StatelessWidget {
           padding: const EdgeInsets.all(25.0),
           child: Column(
             children: [
-              SizedBox(width: 400, child: HeroWidget(title: 'Create account')),
+              SizedBox(width: 400, child: HeroWidget(title: 'Forget Password?')),
               SizedBox(height: 15),
-              TextFieldWidget(hintText: 'Name/username', obscureText: false),
-              TextFieldWidget(hintText: 'Insert your age', obscureText: false),
-              TextFieldWidget(
-                hintText: 'Insert your height',
-                obscureText: false,
-              ),
-              TextFieldWidget(
-                hintText: 'Insert your weight',
-                obscureText: false,
-              ),
-              TextFieldWidget(
-                hintText: 'Insert your Email',
-                obscureText: false,
-              ),
-              TextFieldWidget(
-                hintText: 'Insert your Password',
-                obscureText: true,
-              ),
+              TextFieldWidget(hintText: 'Insert your Email', obscureText: false),
+              //butao
               FilledButton(
                 onPressed: () {
                   Navigator.pushAndRemoveUntil(
@@ -65,7 +47,7 @@ class RegisterPage extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(double.infinity, 50),
                 ),
-                child: Text('Register'),
+                child: Text('Change Password'),
               ),
             ],
           ),

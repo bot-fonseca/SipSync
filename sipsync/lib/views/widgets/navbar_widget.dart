@@ -12,6 +12,7 @@ class NavbarWidget extends StatelessWidget {
         return NavigationBar(
           destinations: const [
             NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
+            NavigationDestination(icon: Icon(Icons.bar_chart), label: 'Statistics'),
             NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
           ],
           onDestinationSelected: (int index) {

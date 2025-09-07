@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sipsync/views/pages/forgetPass_page.dart';
 import 'package:sipsync/views/pages/register_page.dart';
 import 'package:sipsync/views/pages/welcome_page.dart';
 import 'package:sipsync/views/widget_tree.dart';
@@ -71,7 +72,16 @@ class _LoginPageState extends State<LoginPage> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) {
+                            return ForgetpassPage();
+                          },
+                        ),
+                      );
+                    },
                     child: Text('Forgot Password?'),
                   ),
                 ),
