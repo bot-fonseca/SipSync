@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:sipsync/views/widgets/container_widget.dart';
 import 'package:sipsync/views/widgets/hero_widget.dart';
 
 class StatisticsPage extends StatelessWidget {
@@ -13,7 +12,7 @@ class StatisticsPage extends StatelessWidget {
         child: Column(
           children: [
             SizedBox(height: 10),
-            HeroWidget(title: 'Home'),
+            HeroWidget(title: 'Statistics'),
             
           ],
         ),

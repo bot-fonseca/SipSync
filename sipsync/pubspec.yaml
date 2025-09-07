@@ -37,6 +37,8 @@ dependencies:
   lottie: ^3.3.1
   shared_preferences: ^2.5.3
   flutter_launcher_icons: ^0.14.4
+  percent_indicator: ^4.2.5
+  wave: ^0.2.2
 
 dev_dependencies:
   flutter_test:

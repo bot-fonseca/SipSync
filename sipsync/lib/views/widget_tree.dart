@@ -17,7 +17,7 @@ class WidgetTree extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My App'),
+        title: const Text('SipSync'),
         centerTitle: false,
         actions: [
           IconButton(
