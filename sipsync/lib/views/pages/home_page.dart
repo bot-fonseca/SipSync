@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
-import 'package:sipsync/views/widgets/hero_widget.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:wave/config.dart';
 import 'package:wave/wave.dart';
@@ -13,10 +11,10 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  int goal = 2000;
+  int current = 1000;
   @override
   Widget build(BuildContext context) {
-    int goal = 2000;
-    int current = 1000;
     double percent = (current / goal).clamp(0.0, 1.0);
     DateTime now = DateTime.now();
     return Padding(
@@ -26,7 +24,6 @@ class _HomePageState extends State<HomePage> {
           children: [
             Row(
               children: [
-
                 //parte de cima avatar e nome
                 CircleAvatar(
                   radius: 30,
@@ -43,10 +40,10 @@ class _HomePageState extends State<HomePage> {
               radius: 125.0,
               lineWidth: 10.0,
               animation: true,
-              animationDuration: 1000,
+              animationDuration: 10000,
               percent: percent,
               circularStrokeCap: CircularStrokeCap.round,
-              backgroundColor: Colors.blue.withOpacity(0.2),
+              animateFromLastPercent: true,
               progressColor: Colors.blueAccent,
               center: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -59,10 +56,16 @@ class _HomePageState extends State<HomePage> {
                       child: WaveWidget(
                         config: CustomConfig(
                           gradients: [
-                            [Colors.blueAccent, Colors.lightBlueAccent],
-                            [Colors.blue, Colors.blueAccent],
+                            [
+                              Colors.blueAccent,
+                              const Color.fromARGB(255, 96, 205, 255),
+                            ],
+                            [
+                              const Color.fromARGB(255, 12, 116, 202),
+                              Colors.blueAccent,
+                            ],
                           ],
-                          durations: [100000, 100000],
+                          durations: [100000, 80000],
                           heightPercentages: [
                             1.0 - percent,
                             1.0 - percent + 0.02,
@@ -80,14 +83,33 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-            SizedBox(height: 20),
-            Text(
-              "$current / $goal ml",
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
+            //parte de adicionar e remover agua
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  color: Colors.blueAccent,
+                  iconSize: 35,
+                  onPressed: () => spitWater(250),
+                  icon: Icon(Icons.remove),
+                ),
+                SizedBox(width: 20),
+                Text(
+                  "$current / $goal ml",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
+                SizedBox(width: 20),
+                IconButton(
+                  color: Colors.blueAccent,
+                  iconSize: 35,
+                  onPressed: () => drinkWater(250),
+                  icon: Icon(Icons.add),
+                ),
+              ],
             ),
           ],
         ),
@@ -103,5 +125,23 @@ class _HomePageState extends State<HomePage> {
     } else {
       return 'Good evening';
     }
+  }
+
+  void drinkWater(int amount) {
+    setState(() {
+      current += amount;
+      if (current > goal) {
+        current = goal;//tem de ser alterado porque podem beber mais que o goal
+      }
+    });
+  }
+
+  void spitWater(int amount) {
+    setState(() {
+      current -= amount;
+      if (current < 0) {
+        current = 0;
+      }
+    });
   }
 }
