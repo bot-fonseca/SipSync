@@ -30,7 +30,7 @@ class ForgetpassPage extends StatelessWidget {
             children: [
               SizedBox(width: 400, child: HeroWidget(title: 'Forget Password?')),
               SizedBox(height: 15),
-              TextFieldWidget(hintText: 'Insert your Email', obscureText: false),
+              TextFieldWidget(hintText: 'Insert your Email', obscureText: false, dis: 10),
               //butao
               FilledButton(
                 onPressed: () {

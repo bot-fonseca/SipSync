@@ -19,6 +19,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   TextEditingController controllerEmail = TextEditingController();
   TextEditingController controllerPassword = TextEditingController();
+
   String confirmEmail = 'abc';
   String confirmPassword = '123';
 
@@ -61,12 +62,14 @@ class _LoginPageState extends State<LoginPage> {
                   hintText: 'Email',
                   controller: controllerEmail,
                   obscureText: false,
+                  dis: 10,
                 ),
                 //password
                 TextFieldWidget(
                   hintText: 'Password',
                   controller: controllerPassword,
                   obscureText: true,
+                  dis: 0,
                 ),
                 //forgot password
                 Align(
