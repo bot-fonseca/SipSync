@@ -11,14 +11,20 @@ class TextFieldWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        TextField(
+        TextFormField(
           controller: controller,
           autocorrect: false,
           obscureText: obscureText,
           decoration: InputDecoration(
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
-            hintText: hintText,
+            labelText: hintText,
           ),
+          validator: (value){
+            if(value == null || value.isEmpty){
+              return 'Please enter some text';
+            }
+            return null;
+          },
         ),
         SizedBox(height: dis),
       ],

@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:sipsync/views/auth_services.dart';
 import 'package:sipsync/views/pages/login_page.dart';
 import 'package:sipsync/views/pages/welcome_page.dart';
 import 'package:sipsync/views/widgets/hero_widget.dart';
@@ -18,6 +20,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final _ageController = TextEditingController();
   final _heightController = TextEditingController();
   final _weightController = TextEditingController();
+  String errorMessage = '';
 
   @override
   void dispose() {
@@ -50,7 +53,7 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(25.0),
+          padding: const EdgeInsets.symmetric(horizontal: 25.0),
           child: Column(
             children: [
               SizedBox(width: 400, child: HeroWidget(title: 'Create account')),
@@ -91,24 +94,27 @@ class _RegisterPageState extends State<RegisterPage> {
                 obscureText: true,
                 dis: 10,
               ),
+              Text(errorMessage, style: TextStyle(color: Colors.red)),
+              SizedBox(height: 20),
               FilledButton(
                 onPressed: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) {
-                        return LoginPage(title: 'Login');
-                      },
-                    ),
-                    (route) => false,
-                  );
+                  register();
+                  // Navigator.pushAndRemoveUntil(
+                  //   context,
+                  //   MaterialPageRoute(
+                  //     builder: (context) {
+                  //       return LoginPage(title: 'Login');
+                  //     },
+                  //   ),
+                  //   (route) => false,
+                  // );
                 },
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(double.infinity, 50),
                 ),
                 child: Text('Register'),
               ),
-              SizedBox(height: 60),
+              SizedBox(height: 50),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -134,5 +140,22 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       ),
     );
+  }
+
+  void register() async {
+    try {
+      await authServicesNotifier.value.createAccount(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        name: _nameController.text.trim(),
+        age: int.tryParse(_ageController.text.trim()) ?? 0,
+        weight: int.tryParse(_weightController.text.trim()) ?? 0,
+        height: int.tryParse(_heightController.text.trim()) ?? 0,
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        errorMessage = e.message ?? 'An error occurred';
+      });
+    }
   }
 }
