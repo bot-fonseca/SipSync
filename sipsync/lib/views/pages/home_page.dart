@@ -17,6 +17,8 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     double percent = (current / goal).clamp(0.0, 1.0);
     DateTime now = DateTime.now();
+
+    
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20),
       child: SingleChildScrollView(
@@ -34,6 +36,7 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
             SizedBox(height: 50),
+            Text('test'),
 
             //parte do meio o circulo
             CircularPercentIndicator(

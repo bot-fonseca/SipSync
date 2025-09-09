@@ -8,6 +8,3 @@ thank youuuu
 Never give up
 
 André Fonseca
-
-
-coisas a fazer, tenho de ver como preencher tudo no register de forma a que seja obrigatorio e so depois de tudo estar preenchido é que ele entra na funçao -_-

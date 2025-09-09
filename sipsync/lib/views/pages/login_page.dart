@@ -61,6 +61,8 @@ class _LoginPageState extends State<LoginPage> {
                 TextFieldWidget(
                   hintText: 'Email',
                   controller: controllerEmail,
+                  isNumber: false,
+                  message: 'Please enter your email',
                   obscureText: false,
                   dis: 10,
                 ),
@@ -68,6 +70,8 @@ class _LoginPageState extends State<LoginPage> {
                 TextFieldWidget(
                   hintText: 'Password',
                   controller: controllerPassword,
+                  isNumber: false,
+                  message: 'Please enter your password',
                   obscureText: true,
                   dis: 0,
                 ),

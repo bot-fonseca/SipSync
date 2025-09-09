@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sipsync/data/constants.dart';
 import 'package:sipsync/data/notifiers.dart';
-import 'package:sipsync/views/pages/welcome_page.dart';
+import 'package:sipsync/views/auth_layout.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
@@ -45,7 +45,7 @@ class _MyAppState extends State<MyApp> {
               brightness: isDarkMode ? Brightness.dark : Brightness.light,
             ),
           ),
-          home: WelcomePage(),
+          home: const AuthLayout(),
         );
       },
     );

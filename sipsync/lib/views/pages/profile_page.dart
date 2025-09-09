@@ -49,6 +49,7 @@ class ProfilePage extends StatelessWidget {
             title: Text('Log out'),
             onTap: () {
               selectedPageNotifier.value = 0;
+              
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(

@@ -18,7 +18,7 @@ class ForgetpassPage extends StatelessWidget {
                 builder: (context) {
                   return LoginPage(title: 'Login');
                 },
-              )
+              ),
             );
           },
         ),
@@ -28,9 +28,16 @@ class ForgetpassPage extends StatelessWidget {
           padding: const EdgeInsets.all(25.0),
           child: Column(
             children: [
-              SizedBox(width: 400, child: HeroWidget(title: 'Forget Password?')),
+              SizedBox(
+                width: 400,
+                child: HeroWidget(title: 'Forget Password?'),
+              ),
               SizedBox(height: 15),
-              TextFieldWidget(hintText: 'Insert your Email', obscureText: false, dis: 10),
+              TextFieldWidget(
+                hintText: 'Insert your Email',
+                obscureText: false,
+                dis: 10,
+              ),
               //butao
               FilledButton(
                 onPressed: () {

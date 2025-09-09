@@ -14,6 +14,7 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
@@ -54,73 +55,69 @@ class _RegisterPageState extends State<RegisterPage> {
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 25.0),
-          child: Column(
-            children: [
-              SizedBox(width: 400, child: HeroWidget(title: 'Create account')),
-              SizedBox(height: 15),
-              TextFieldWidget(
-                hintText: 'Name/username',
-                controller: _nameController,
-                obscureText: false,
-                dis: 10,
-              ),
-              TextFieldWidget(
-                hintText: 'Insert your age',
-                controller: _ageController,
-                obscureText: false,
-                dis: 10,
-              ),
-              TextFieldWidget(
-                hintText: 'Insert your height',
-                controller: _heightController,
-                obscureText: false,
-                dis: 10,
-              ),
-              TextFieldWidget(
-                hintText: 'Insert your weight',
-                controller: _weightController,
-                obscureText: false,
-                dis: 10,
-              ),
-              TextFieldWidget(
-                hintText: 'Insert your Email',
-                controller: _emailController,
-                obscureText: false,
-                dis: 10,
-              ),
-              TextFieldWidget(
-                hintText: 'Insert your Password',
-                controller: _passwordController,
-                obscureText: true,
-                dis: 10,
-              ),
-              Text(errorMessage, style: TextStyle(color: Colors.red)),
-              SizedBox(height: 20),
-              FilledButton(
-                onPressed: () {
-                  register();
-                  // Navigator.pushAndRemoveUntil(
-                  //   context,
-                  //   MaterialPageRoute(
-                  //     builder: (context) {
-                  //       return LoginPage(title: 'Login');
-                  //     },
-                  //   ),
-                  //   (route) => false,
-                  // );
-                },
-                style: ElevatedButton.styleFrom(
-                  minimumSize: Size(double.infinity, 50),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                SizedBox(
+                  width: 400,
+                  child: HeroWidget(title: 'Create account'),
                 ),
-                child: Text('Register'),
-              ),
-              SizedBox(height: 50),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Already have an account?'),
-                  TextButton(
-                    onPressed: () {
+                SizedBox(height: 15),
+                TextFieldWidget(
+                  hintText: 'Name/username',
+                  controller: _nameController,
+                  isNumber: false,
+                  message: 'Please enter your name',
+                  obscureText: false,
+                  dis: 10,
+                ),
+                TextFieldWidget(
+                  hintText: 'Insert your age',
+                  controller: _ageController,
+                  isNumber: true,
+                  message: 'Please enter your age',
+                  obscureText: false,
+                  dis: 10,
+                ),
+                TextFieldWidget(
+                  hintText: 'Insert your height',
+                  controller: _heightController,
+                  isNumber: true,
+                  message: 'Please enter your height',
+                  obscureText: false,
+                  dis: 10,
+                ),
+                TextFieldWidget(
+                  hintText: 'Insert your weight',
+                  controller: _weightController,
+                  isNumber: true,
+                  message: 'Please enter your weight',
+                  obscureText: false,
+                  dis: 10,
+                ),
+                TextFieldWidget(
+                  hintText: 'Insert your Email',
+                  controller: _emailController,
+                  isNumber: false,
+                  message: 'Please enter your email',
+                  obscureText: false,
+                  dis: 10,
+                ),
+                TextFieldWidget(
+                  hintText: 'Insert your Password',
+                  controller: _passwordController,
+                  isNumber: false,
+                  message: 'Please enter your password',
+                  obscureText: true,
+                  dis: 10,
+                ),
+                Text(errorMessage, style: TextStyle(color: Colors.red)),
+                SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      register();
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(
@@ -130,12 +127,36 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                         (route) => false,
                       );
-                    },
-                    child: Text('Sign In'),
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(double.infinity, 50),
                   ),
-                ],
-              ),
-            ],
+                  child: Text('Register'),
+                ),
+                SizedBox(height: 50),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Already have an account?'),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) {
+                              return LoginPage(title: 'Login');
+                            },
+                          ),
+                          (route) => false,
+                        );
+                      },
+                      child: Text('Sign In'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
