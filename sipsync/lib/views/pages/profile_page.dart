@@ -1,8 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sipsync/data/notifiers.dart';
+import 'package:sipsync/views/auth_services.dart';
 import 'package:sipsync/views/pages/resetPassword_page.dart';
 import 'package:sipsync/views/pages/resetUserName_page.dart';
-import 'package:sipsync/views/pages/welcome_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -39,29 +40,29 @@ class ProfilePage extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) {
-                      return ResetpasswordPage(); //ctrl + click to open, ha que mudar a pagina
+                    return ResetpasswordPage(); //ctrl + click to open, ha que mudar a pagina
                   },
                 ),
               );
             },
           ),
           ListTile(
-            title: Text('Log out'),
+            title: Text('Log out', style: TextStyle(color: Colors.red)),
             onTap: () {
-              selectedPageNotifier.value = 0;
-              
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) {
-                    return WelcomePage();
-                  },
-                ),
-              );
+              logOutFunc(context);
             },
           ),
         ],
       ),
     );
+  }
+
+  void logOutFunc(BuildContext context) async {
+    try {
+      await authServicesNotifier.value.signOut();
+      selectedPageNotifier.value = 0;
+    } on FirebaseAuthException catch (e) {
+      print(e.message);
+    }
   }
 }
