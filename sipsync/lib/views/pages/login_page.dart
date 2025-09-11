@@ -1,8 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:sipsync/views/auth_services.dart';
 import 'package:sipsync/views/pages/forgetPass_page.dart';
 import 'package:sipsync/views/pages/register_page.dart';
 import 'package:sipsync/views/pages/welcome_page.dart';
-import 'package:sipsync/views/widget_tree.dart';
 import 'package:sipsync/views/widgets/hero_widget.dart';
 import 'package:sipsync/views/widgets/square_widget.dart';
 import 'package:sipsync/views/widgets/texfield_widget.dart';
@@ -19,9 +20,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   TextEditingController controllerEmail = TextEditingController();
   TextEditingController controllerPassword = TextEditingController();
-
-  String confirmEmail = 'abc';
-  String confirmPassword = '123';
+  String errorMessage = '';
 
   @override
   void dispose() {
@@ -157,18 +156,13 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void onLoginPressed() {
-    if (confirmEmail == controllerEmail.text &&
-        confirmPassword == controllerPassword.text) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (context) {
-            return WidgetTree();
-          },
-        ),
-        (route) => false,
-      );
+  void onLoginPressed() async {
+    try {
+      await authServicesNotifier.value.signIn(email: controllerEmail.text, password: controllerPassword.text);
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        errorMessage = e.message ?? 'An error occurred';
+      });
     }
   }
 }
