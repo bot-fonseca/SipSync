@@ -1,22 +1,20 @@
 import { useEffect, useState } from 'react';
-// 1. Import useRootNavigationState
-import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router'; 
+import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
 
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false); // Helps prevent flashing
+  const [isInitialized, setIsInitialized] = useState(false);
   
   const router = useRouter();
   const segments = useSegments(); 
-  // 2. Add the navigation state checker
   const navigationState = useRootNavigationState(); 
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setIsInitialized(true); // Tell the app we finished checking Supabase
+      setIsInitialized(true); 
     });
 
     supabase.auth.onAuthStateChange((_event, session) => {
@@ -24,29 +22,29 @@ export default function RootLayout() {
     });
   }, []);
 
-// --- THE BULLETPROOF TRAFFIC COP ---
   useEffect(() => {
     if (!navigationState?.key || !isInitialized) return;
 
-    // Let's print out what the app sees in your VS Code terminal!
-    console.log("--- NAVIGATION CHECK ---");
-    console.log("Is user logged in?", !!session);
-    console.log("Where are they right now?", segments[0]);
+    // We check exactly which screen the user is trying to look at
+    const onLoginScreen = segments[0] === 'login';
 
-    if (!session && segments[0] !== 'login') {
-      // If NOT logged in, and NOT on the login page -> Send to Login
+    if (!session && !onLoginScreen) {
+      // 1. NO user, and NOT on login -> Send to Login
       router.replace('/login');
-    } else if (session && segments[0] !== '(tabs)') {
-      // If LOGGED IN, and NOT inside the main app -> Send to Home Dashboard
-      router.replace('/(tabs)'); 
+    } else if (session && onLoginScreen) {
+      // 2. HAS user, but trying to view Login -> Send to Home
+      router.replace('/(tabs)');
     }
+    // 3. If they HAVE a user, and are going to '/profile' or '/(tabs)', we do nothing. Let them pass!
+    
   }, [session, segments, navigationState?.key, isInitialized]);
 
   return (
     <Stack>
       <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="profile" options={{ headerShown: false }} />
+      {/* We add presentation: 'modal' so the profile slides up from the bottom! */}
+      <Stack.Screen name="profile" options={{ headerShown: false, presentation: 'modal' }} />
     </Stack>
   );
 }

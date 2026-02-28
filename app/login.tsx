@@ -1,32 +1,48 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { useRouter } from 'expo-router'; 
+
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  const router = useRouter(); // <-- ADD THIS!
 
-  // Function to Log In
+  // Update this function
   async function signInWithEmail() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) Alert.alert('Error', error.message);
+    
+    if (error) {
+      Alert.alert('Error', error.message);
+    } else {
+      // FORCE the app to go to the Home screen on success!
+      router.replace('/'); 
+    }
     setLoading(false);
   }
 
-  // Function to Sign Up (New User)
+  // Update this function too
   async function signUpWithEmail() {
     setLoading(true);
     const { error } = await supabase.auth.signUp({ email, password });
-    if (error) Alert.alert('Error', error.message);
-    else Alert.alert('Success', 'Check your email to verify your account!');
+    
+    if (error) {
+      Alert.alert('Error', error.message);
+    } else {
+      Alert.alert('Success', 'Account created! Sending you in...');
+      // FORCE the app to go to the Home screen!
+      router.replace('/'); 
+    }
     setLoading(false);
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Welcome Back</Text>
+      <Text style={styles.header}>Welcome to SipSync!</Text>
       <Text style={styles.subtitle}>Log in to track your hydration</Text>
 
       <View style={styles.inputContainer}>
