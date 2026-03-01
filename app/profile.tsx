@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView, Modal, FlatList } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const EXERCISE_OPTIONS = ["Sedentary (Little to none)", "Light (1-3 times/week)", "Moderate (3-5 times/week)", "High (5-7 times/week)", "Extreme (Heavy exercise/job)"];
 const COUNTRIES = ["Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo (Congo-Brazzaville)", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czechia (Czech Republic)", "Democratic Republic of the Congo", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Holy See", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Ivory Coast", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar (Burma)", "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway", "Oman", "Pakistan", "Palau", "Palestine State", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States of America", "Uruguay", "Uzbekistan", "Vanuatu", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"];
@@ -13,6 +14,9 @@ export default function ProfileScreen() {
   
   const [email, setEmail] = useState('Loading...');
   const [metadata, setMetadata] = useState<any>({});
+
+  // --- NEW STATE FOR UNIT PREFERENCE ---
+  const [isMetric, setIsMetric] = useState(true); // true = kg/cm, false = lbs/in
 
   const [isEditing, setIsEditing] = useState(false);
   const [editUserName, setEditUserName] = useState('');
@@ -29,25 +33,51 @@ export default function ProfileScreen() {
 
   const filteredCountries = COUNTRIES.filter(c => c.toLowerCase().includes(searchCountry.toLowerCase()));
 
-  useEffect(() => {
-    async function loadUserData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setEmail(user.email || '');
-        if (user.user_metadata) {
-          setMetadata(user.user_metadata);
-          setEditUserName(user.user_metadata.userName || '');
-          setEditDob(user.user_metadata.dob || '');
-          setEditGender(user.user_metadata.gender || '');
-          setEditWeight(user.user_metadata.weight || '');
-          setEditHeight(user.user_metadata.height || '');
-          setEditCountry(user.user_metadata.country || '');     
-          setEditExercise(user.user_metadata.exercise || '');   
+// --- THE NEW FOCUS EFFECT ---
+  useFocusEffect(
+    useCallback(() => {
+      async function loadUserData() {
+        // 1. Fetch unit preference from Settings
+        try {
+          const savedUnit = await AsyncStorage.getItem('@use_kg');
+          if (savedUnit !== null) {
+            setIsMetric(JSON.parse(savedUnit));
+          }
+        } catch (e) {
+          console.log("Failed to load unit settings");
+        }
+
+        // 2. Fetch Supabase Data
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setEmail(user.email || '');
+          if (user.user_metadata) {
+            setMetadata(user.user_metadata);
+            setEditUserName(user.user_metadata.userName || '');
+            setEditDob(user.user_metadata.dob || '');
+            setEditGender(user.user_metadata.gender || '');
+            setEditCountry(user.user_metadata.country || '');     
+            setEditExercise(user.user_metadata.exercise || '');   
+            
+            const rawWeight = parseFloat(user.user_metadata.weight || '0');
+            const rawHeight = parseFloat(user.user_metadata.height || '0');
+            
+            const metricCheck = await AsyncStorage.getItem('@use_kg');
+            const prefersMetric = metricCheck !== null ? JSON.parse(metricCheck) : true;
+
+            if (prefersMetric) {
+              setEditWeight(user.user_metadata.weight || '');
+              setEditHeight(user.user_metadata.height || '');
+            } else {
+              setEditWeight(rawWeight ? (rawWeight * 2.20462).toFixed(1).toString() : '');
+              setEditHeight(rawHeight ? (rawHeight * 0.393701).toFixed(1).toString() : '');
+            }
+          }
         }
       }
-    }
-    loadUserData();
-  }, []);
+      loadUserData();
+    }, [])
+  );
 
   function calculateAge(dobString: string) {
     if (!dobString) return '--';
@@ -63,45 +93,38 @@ export default function ProfileScreen() {
     return text.split(' ')[0]; 
   }
 
-  // --- NEW: AUTO-FORMATTER FOR EDIT MODE ---
   function handleEditDobChange(text: string) {
     const cleaned = text.replace(/\D/g, '');
     let formatted = cleaned;
-
-    if (cleaned.length > 4) {
-      formatted = cleaned.substring(0, 4) + '-' + cleaned.substring(4);
-    }
-    if (cleaned.length > 6) {
-      formatted = formatted.substring(0, 7) + '-' + cleaned.substring(6, 8);
-    }
-    
+    if (cleaned.length > 4) formatted = cleaned.substring(0, 4) + '-' + cleaned.substring(4);
+    if (cleaned.length > 6) formatted = formatted.substring(0, 7) + '-' + cleaned.substring(6, 8);
     setEditDob(formatted);
   }
 
   async function handleSaveProfile() {
-    // --- NEW: VALIDATION CHECK BEFORE SAVING ---
     if (editDob) {
       if (editDob.length !== 10) return Alert.alert("Invalid Date", "Please enter a complete date (YYYY-MM-DD).");
-      
       const dobDate = new Date(editDob);
       const today = new Date();
-
-      if (isNaN(dobDate.getTime()) || dobDate > today) {
-        return Alert.alert("Invalid Date", "Please enter a valid date in the past.");
-      }
-
+      if (isNaN(dobDate.getTime()) || dobDate > today) return Alert.alert("Invalid Date", "Please enter a valid date in the past.");
       const [year, month, day] = editDob.split('-');
-      if (
-        dobDate.getUTCFullYear() !== parseInt(year) ||
-        dobDate.getUTCMonth() + 1 !== parseInt(month) ||
-        dobDate.getUTCDate() !== parseInt(day)
-      ) {
+      if (dobDate.getUTCFullYear() !== parseInt(year) || dobDate.getUTCMonth() + 1 !== parseInt(month) || dobDate.getUTCDate() !== parseInt(day)) {
         return Alert.alert("Invalid Date", "This date does not exist on the calendar.");
       }
     }
 
+    // --- THE MATH: Convert BACK to Metric before saving to the database ---
+    let weightToSave = editWeight;
+    let heightToSave = editHeight;
+
+    if (!isMetric) {
+      // If they typed in Lbs/Inches, turn it back to Kg/Cm for the database
+      if (editWeight) weightToSave = (parseFloat(editWeight) / 2.20462).toFixed(1).toString();
+      if (editHeight) heightToSave = (parseFloat(editHeight) / 0.393701).toFixed(1).toString();
+    }
+
     const { data, error } = await supabase.auth.updateUser({
-      data: { userName: editUserName, dob: editDob, gender: editGender, weight: editWeight, height: editHeight, country: editCountry, exercise: editExercise }
+      data: { userName: editUserName, dob: editDob, gender: editGender, weight: weightToSave, height: heightToSave, country: editCountry, exercise: editExercise }
     });
 
     if (error) {
@@ -127,6 +150,18 @@ export default function ProfileScreen() {
 
   const firstLetter = metadata.userName ? metadata.userName.charAt(0).toUpperCase() : email.charAt(0).toUpperCase();
 
+  // --- THE MATH: Display Values for View Mode ---
+  const displayWeight = isMetric 
+    ? metadata.weight 
+    : metadata.weight ? (parseFloat(metadata.weight) * 2.20462).toFixed(1) : '--';
+  
+  const displayHeight = isMetric 
+    ? metadata.height 
+    : metadata.height ? (parseFloat(metadata.height) * 0.393701).toFixed(1) : '--';
+
+  const weightUnitLabel = isMetric ? "kg" : "lbs";
+  const heightUnitLabel = isMetric ? "cm" : "in";
+
   return (
     <ScrollView style={styles.container}>
       
@@ -135,7 +170,6 @@ export default function ProfileScreen() {
           <Ionicons name="close" size={28} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Profile</Text>
-        
         <TouchableOpacity onPress={() => isEditing ? handleSaveProfile() : setIsEditing(true)}>
           <Text style={styles.editButtonText}>{isEditing ? 'Save' : 'Edit'}</Text>
         </TouchableOpacity>
@@ -162,14 +196,7 @@ export default function ProfileScreen() {
           
           <View style={styles.metricBox}>
             {isEditing ? (
-              <TextInput 
-                style={styles.editGridInput} 
-                value={editDob} 
-                onChangeText={handleEditDobChange} // Using the formatter!
-                placeholder="YYYY-MM-DD" 
-                keyboardType="numeric"
-                maxLength={10} // Locking the length!
-              />
+              <TextInput style={styles.editGridInput} value={editDob} onChangeText={handleEditDobChange} placeholder="YYYY-MM-DD" keyboardType="numeric" maxLength={10} />
             ) : (
               <Text style={styles.metricValue}>{calculateAge(metadata.dob)}</Text>
             )}
@@ -192,20 +219,22 @@ export default function ProfileScreen() {
             <Text style={styles.metricLabel}>Gender</Text>
           </View>
           
+          {/* DYNAMIC WEIGHT BOX */}
           <View style={styles.metricBox}>
             {isEditing ? (
-              <TextInput style={styles.editGridInput} value={editWeight} onChangeText={setEditWeight} keyboardType="numeric" placeholder="kg" />
+              <TextInput style={styles.editGridInput} value={editWeight} onChangeText={setEditWeight} keyboardType="numeric" placeholder={weightUnitLabel} />
             ) : (
-              <Text style={styles.metricValue}>{metadata.weight ? `${metadata.weight} kg` : '--'}</Text>
+              <Text style={styles.metricValue}>{displayWeight !== '--' ? `${displayWeight} ${weightUnitLabel}` : '--'}</Text>
             )}
             <Text style={styles.metricLabel}>Weight</Text>
           </View>
 
+          {/* DYNAMIC HEIGHT BOX */}
           <View style={styles.metricBox}>
             {isEditing ? (
-              <TextInput style={styles.editGridInput} value={editHeight} onChangeText={setEditHeight} keyboardType="numeric" placeholder="cm" />
+              <TextInput style={styles.editGridInput} value={editHeight} onChangeText={setEditHeight} keyboardType="numeric" placeholder={heightUnitLabel} />
             ) : (
-              <Text style={styles.metricValue}>{metadata.height ? `${metadata.height} cm` : '--'}</Text>
+              <Text style={styles.metricValue}>{displayHeight !== '--' ? `${displayHeight} ${heightUnitLabel}` : '--'}</Text>
             )}
             <Text style={styles.metricLabel}>Height</Text>
           </View>
@@ -304,7 +333,7 @@ const styles = StyleSheet.create({
   emailText: { fontSize: 14, color: '#555', marginBottom: 20 }, 
 
   editInputLine: { fontSize: 18, fontWeight: 'bold', color: '#333', borderBottomWidth: 1, borderBottomColor: '#E0E7FF', marginBottom: 10, textAlign: 'center', width: '80%', paddingVertical: 5 },
-  editGridInput: { fontSize: 16, fontWeight: 'bold', color: '#7B61FF', borderBottomWidth: 1, borderBottomColor: '#E0E7FF', marginBottom: 5, textAlign: 'center', width: '100%' }, // Widened slightly to fit the date
+  editGridInput: { fontSize: 16, fontWeight: 'bold', color: '#7B61FF', borderBottomWidth: 1, borderBottomColor: '#E0E7FF', marginBottom: 5, textAlign: 'center', width: '100%' }, 
   
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', width: '100%' },
   metricBox: { width: '47%', backgroundColor: '#F9F9FB', padding: 15, borderRadius: 15, alignItems: 'center', marginBottom: 15, height: 80, justifyContent: 'center' },
@@ -326,7 +355,6 @@ const styles = StyleSheet.create({
   logoutButton: { alignItems: 'center', padding: 18, backgroundColor: '#FFF', borderRadius: 20, borderWidth: 1, borderColor: '#FFE5E5' },
   logoutText: { color: '#FF4B4B', fontWeight: 'bold', fontSize: 16 },
 
-  // --- MODAL STYLES ---
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 25, borderTopRightRadius: 25, padding: 25, maxHeight: '80%' },
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 15, textAlign: 'center' },

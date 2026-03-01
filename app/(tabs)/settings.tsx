@@ -59,7 +59,7 @@ export default function SettingsScreen() {
         <View style={styles.item}>
           <View style={styles.itemLeft}>
             <Ionicons name="barbell-outline" size={22} color="#7B61FF" />
-            <Text style={styles.itemText}>Weight Unit ({useKg ? "Kg" : "Lbs"})</Text>
+            <Text style={styles.itemText}>Unit ({useKg ? "Kg/cm" : "Lbs/in"})</Text>
           </View>
           <Switch 
             value={useKg} 
