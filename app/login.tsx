@@ -14,11 +14,10 @@ export default function LoginScreen() {
   const [userName, setUserName] = useState('');
 
   // Metric States
-  const [age, setAge] = useState('');
-  const [gender, setGender] = useState(''); // This will now hold 'M' or 'F'
+  const [dob, setDob] = useState(''); // Format: YYYY-MM-DD
+  const [gender, setGender] = useState(''); 
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
-  const [phone, setPhone] = useState('');
 
   async function signInWithEmail() {
     setLoading(true);
@@ -47,11 +46,10 @@ async function signUpWithEmail() {
         // 2. Explicitly tell Supabase exactly what data to save
         data: { 
           userName: userName, 
-          age: age, 
+          dob: dob, 
           gender: gender, 
           weight: weight, 
           height: height, 
-          phone: phone 
         }
       }
     });
@@ -92,30 +90,35 @@ async function signUpWithEmail() {
         <View style={styles.metricsBox}>
           <Text style={styles.metricsHeader}>Personal Metrics</Text>
           
-          <View style={styles.row}>
-            <View style={[styles.inputContainer, { flex: 1, marginRight: 10 }]}>
-              <Text style={styles.label}>Age</Text>
-              <TextInput style={styles.input} placeholder="e.g. 25" value={age} onChangeText={setAge} keyboardType="numeric" />
-            </View>
-            
-            {/* --- THE NEW GENDER BUTTONS --- */}
-            <View style={[styles.inputContainer, { flex: 1 }]}>
-              <Text style={styles.label}>Gender</Text>
-              <View style={styles.genderRow}>
-                <TouchableOpacity 
-                  style={[styles.genderButton, gender === 'M' && styles.genderButtonActive]} 
-                  onPress={() => setGender('M')}
-                >
-                  <Text style={[styles.genderText, gender === 'M' && styles.genderTextActive]}>M</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[styles.genderButton, gender === 'F' && styles.genderButtonActive]} 
-                  onPress={() => setGender('F')}
-                >
-                  <Text style={[styles.genderText, gender === 'F' && styles.genderTextActive]}>F</Text>
-                </TouchableOpacity>
-              </View>
+          {/* Replace the old Age box with this DOB box */}
+          <View style={[styles.inputContainer, { flex: 1, marginRight: 10 }]}>
+            <Text style={styles.label}>Date of Birth</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="YYYY-MM-DD" 
+              value={dob} 
+              onChangeText={setDob} 
+              keyboardType="numeric" 
+            />
+          </View>
+          
+          {/* --- THE NEW GENDER BUTTONS --- */}
+          <View style={[styles.inputContainer, { flex: 1 }]}>
+            <Text style={styles.label}>Gender</Text>
+            <View style={styles.genderRow}>
+              <TouchableOpacity 
+                style={[styles.genderButton, gender === 'M' && styles.genderButtonActive]} 
+                onPress={() => setGender('M')}
+              >
+                <Text style={[styles.genderText, gender === 'M' && styles.genderTextActive]}>M</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.genderButton, gender === 'F' && styles.genderButtonActive]} 
+                onPress={() => setGender('F')}
+              >
+                <Text style={[styles.genderText, gender === 'F' && styles.genderTextActive]}>F</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -128,11 +131,6 @@ async function signUpWithEmail() {
               <Text style={styles.label}>Height (cm)</Text>
               <TextInput style={styles.input} placeholder="e.g. 175" value={height} onChangeText={setHeight} keyboardType="numeric" />
             </View>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Phone Number</Text>
-            <TextInput style={styles.input} placeholder="+1 234 567 8900" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
           </View>
         </View>
       )}
