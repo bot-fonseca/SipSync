@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 const EXERCISE_OPTIONS = ["Sedentary (Little to none)", "Light (1-3 times/week)", "Moderate (3-5 times/week)", "High (5-7 times/week)", "Extreme (Heavy exercise/job)"];
-const COUNTRIES = ["Argentina", "Brazil", "Canada", "France", "Germany", "Mexico", "Portugal", "Puerto Rico", "Spain", "United Kingdom", "United States"];
+const COUNTRIES = ["Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo (Congo-Brazzaville)", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czechia (Czech Republic)", "Democratic Republic of the Congo", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Holy See", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Ivory Coast", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar (Burma)", "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway", "Oman", "Pakistan", "Palau", "Palestine State", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States of America", "Uruguay", "Uzbekistan", "Vanuatu", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"];
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -23,7 +23,6 @@ export default function ProfileScreen() {
   const [editCountry, setEditCountry] = useState('');
   const [editExercise, setEditExercise] = useState('');
 
-  // --- MODAL STATES ---
   const [showCountryModal, setShowCountryModal] = useState(false);
   const [searchCountry, setSearchCountry] = useState('');
   const [showExerciseModal, setShowExerciseModal] = useState(false);
@@ -59,13 +58,48 @@ export default function ProfileScreen() {
     return Math.abs(ageDate.getUTCFullYear() - 1970);
   }
 
-  // To make the exercise text fit perfectly in the grid box
   function formatExercise(text: string) {
     if (!text) return '--';
-    return text.split(' ')[0]; // Just shows "Sedentary", "Light", "Moderate", etc.
+    return text.split(' ')[0]; 
+  }
+
+  // --- NEW: AUTO-FORMATTER FOR EDIT MODE ---
+  function handleEditDobChange(text: string) {
+    const cleaned = text.replace(/\D/g, '');
+    let formatted = cleaned;
+
+    if (cleaned.length > 4) {
+      formatted = cleaned.substring(0, 4) + '-' + cleaned.substring(4);
+    }
+    if (cleaned.length > 6) {
+      formatted = formatted.substring(0, 7) + '-' + cleaned.substring(6, 8);
+    }
+    
+    setEditDob(formatted);
   }
 
   async function handleSaveProfile() {
+    // --- NEW: VALIDATION CHECK BEFORE SAVING ---
+    if (editDob) {
+      if (editDob.length !== 10) return Alert.alert("Invalid Date", "Please enter a complete date (YYYY-MM-DD).");
+      
+      const dobDate = new Date(editDob);
+      const today = new Date();
+
+      if (isNaN(dobDate.getTime()) || dobDate > today) {
+        return Alert.alert("Invalid Date", "Please enter a valid date in the past.");
+      }
+
+      const [year, month, day] = editDob.split('-');
+      if (
+        dobDate.getUTCFullYear() !== parseInt(year) ||
+        dobDate.getUTCMonth() + 1 !== parseInt(month) ||
+        dobDate.getUTCDate() !== parseInt(day)
+      ) {
+        return Alert.alert("Invalid Date", "This date does not exist on the calendar.");
+      }
+    }
+
     const { data, error } = await supabase.auth.updateUser({
       data: { userName: editUserName, dob: editDob, gender: editGender, weight: editWeight, height: editHeight, country: editCountry, exercise: editExercise }
     });
@@ -128,7 +162,14 @@ export default function ProfileScreen() {
           
           <View style={styles.metricBox}>
             {isEditing ? (
-              <TextInput style={styles.editGridInput} value={editDob} onChangeText={setEditDob} placeholder="YYYY-MM-DD" />
+              <TextInput 
+                style={styles.editGridInput} 
+                value={editDob} 
+                onChangeText={handleEditDobChange} // Using the formatter!
+                placeholder="YYYY-MM-DD" 
+                keyboardType="numeric"
+                maxLength={10} // Locking the length!
+              />
             ) : (
               <Text style={styles.metricValue}>{calculateAge(metadata.dob)}</Text>
             )}
@@ -169,7 +210,6 @@ export default function ProfileScreen() {
             <Text style={styles.metricLabel}>Height</Text>
           </View>
 
-          {/* EDITABLE COUNTRY VIA MODAL */}
           <TouchableOpacity style={styles.metricBox} disabled={!isEditing} onPress={() => setShowCountryModal(true)}>
             {isEditing ? (
               <Text style={[styles.editGridInput, { fontSize: 14, paddingTop: 5 }]}>{editCountry || 'Select'}</Text>
@@ -179,7 +219,6 @@ export default function ProfileScreen() {
             <Text style={styles.metricLabel}>Country</Text>
           </TouchableOpacity>
 
-          {/* EDITABLE EXERCISE VIA MODAL */}
           <TouchableOpacity style={styles.metricBox} disabled={!isEditing} onPress={() => setShowExerciseModal(true)}>
             {isEditing ? (
               <Text style={[styles.editGridInput, { fontSize: 14, paddingTop: 5 }]}>{formatExercise(editExercise) || 'Select'}</Text>
@@ -265,7 +304,7 @@ const styles = StyleSheet.create({
   emailText: { fontSize: 14, color: '#555', marginBottom: 20 }, 
 
   editInputLine: { fontSize: 18, fontWeight: 'bold', color: '#333', borderBottomWidth: 1, borderBottomColor: '#E0E7FF', marginBottom: 10, textAlign: 'center', width: '80%', paddingVertical: 5 },
-  editGridInput: { fontSize: 16, fontWeight: 'bold', color: '#7B61FF', borderBottomWidth: 1, borderBottomColor: '#E0E7FF', marginBottom: 5, textAlign: 'center', width: '90%' },
+  editGridInput: { fontSize: 16, fontWeight: 'bold', color: '#7B61FF', borderBottomWidth: 1, borderBottomColor: '#E0E7FF', marginBottom: 5, textAlign: 'center', width: '100%' }, // Widened slightly to fit the date
   
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', width: '100%' },
   metricBox: { width: '47%', backgroundColor: '#F9F9FB', padding: 15, borderRadius: 15, alignItems: 'center', marginBottom: 15, height: 80, justifyContent: 'center' },

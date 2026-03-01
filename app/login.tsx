@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, FlatList } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons'; // Used for the dropdown arrows
+import { Ionicons } from '@expo/vector-icons';
 
 const EXERCISE_OPTIONS = [
   "Sedentary (Little to none)", 
@@ -12,8 +12,40 @@ const EXERCISE_OPTIONS = [
   "Extreme (Heavy exercise/job)"
 ];
 
-// You can add all 195 countries here later!
-const COUNTRIES = ["Argentina", "Brazil", "Canada", "France", "Germany", "Mexico", "Portugal", "Puerto Rico", "Spain", "United Kingdom", "United States"];
+const COUNTRIES = [
+    "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", 
+    "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", 
+    "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", 
+    "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", 
+    "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", 
+    "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", 
+    "Congo (Congo-Brazzaville)", "Costa Rica", "Croatia", "Cuba", "Cyprus", 
+    "Czechia (Czech Republic)", "Democratic Republic of the Congo", "Denmark", 
+    "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", 
+    "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", 
+    "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", 
+    "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Holy See", 
+    "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", 
+    "Israel", "Italy", "Ivory Coast", "Jamaica", "Japan", "Jordan", "Kazakhstan", 
+    "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", 
+    "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", 
+    "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", 
+    "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", 
+    "Morocco", "Mozambique", "Myanmar (Burma)", "Namibia", "Nauru", "Nepal", 
+    "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", 
+    "North Macedonia", "Norway", "Oman", "Pakistan", "Palau", "Palestine State", 
+    "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", 
+    "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", 
+    "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", 
+    "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", 
+    "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", 
+    "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", 
+    "Suriname", "Sweden", "Switzerland", "Syria", "Tajikistan", "Tanzania", "Thailand", 
+    "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", 
+    "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", 
+    "United Kingdom", "United States of America", "Uruguay", "Uzbekistan", "Vanuatu", 
+    "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
+];
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -31,13 +63,29 @@ export default function LoginScreen() {
   const [country, setCountry] = useState('');   
   const [exercise, setExercise] = useState(''); 
 
-  // --- MODAL STATES ---
   const [showCountryModal, setShowCountryModal] = useState(false);
   const [searchCountry, setSearchCountry] = useState('');
   const [showExerciseModal, setShowExerciseModal] = useState(false);
 
-  // Filter countries based on what you type (e.g., "Po")
   const filteredCountries = COUNTRIES.filter(c => c.toLowerCase().includes(searchCountry.toLowerCase()));
+
+  // --- 1. NEW AUTO-FORMATTING FUNCTION ---
+  function handleDobChange(text: string) {
+    // Strip out anything that isn't a number
+    const cleaned = text.replace(/\D/g, '');
+    let formatted = cleaned;
+
+    // Automatically add the first hyphen after the year (YYYY-)
+    if (cleaned.length > 4) {
+      formatted = cleaned.substring(0, 4) + '-' + cleaned.substring(4);
+    }
+    // Automatically add the second hyphen after the month (YYYY-MM-)
+    if (cleaned.length > 6) {
+      formatted = formatted.substring(0, 7) + '-' + cleaned.substring(6, 8);
+    }
+    
+    setDob(formatted);
+  }
 
   async function signInWithEmail() {
     setLoading(true);
@@ -51,6 +99,28 @@ export default function LoginScreen() {
     if (!userName) return Alert.alert("Missing Info", "Please enter a User Name.");
     if (!gender) return Alert.alert("Missing Info", "Please select a gender.");
     if (!country || !exercise) return Alert.alert("Missing Info", "Please select a Country and Exercise Level.");
+    
+    // --- 2. NEW DATE VALIDATION LOGIC ---
+    if (dob.length !== 10) return Alert.alert("Invalid Date", "Please enter a complete date (YYYY-MM-DD).");
+    
+    const dobDate = new Date(dob);
+    const today = new Date();
+
+    // Check if the date is entirely invalid, or if it's set in the future
+    if (isNaN(dobDate.getTime()) || dobDate > today) {
+      return Alert.alert("Invalid Date", "Please enter a valid date in the past.");
+    }
+
+    // Strict calendar check (Catches fake dates like 2024-02-30)
+    const [year, month, day] = dob.split('-');
+    if (
+      dobDate.getUTCFullYear() !== parseInt(year) ||
+      dobDate.getUTCMonth() + 1 !== parseInt(month) ||
+      dobDate.getUTCDate() !== parseInt(day)
+    ) {
+      return Alert.alert("Invalid Date", "This date does not exist on the calendar.");
+    }
+    // ------------------------------------
 
     setLoading(true);
     const { error } = await supabase.auth.signUp({ 
@@ -95,7 +165,14 @@ export default function LoginScreen() {
           <View style={styles.row}>
             <View style={[styles.inputContainer, { flex: 1, marginRight: 10 }]}>
               <Text style={styles.label}>Date of Birth</Text>
-              <TextInput style={styles.input} placeholder="YYYY-MM-DD" value={dob} onChangeText={setDob} keyboardType="numeric" />
+              <TextInput 
+                style={styles.input} 
+                placeholder="YYYY-MM-DD" 
+                value={dob} 
+                onChangeText={handleDobChange} // <-- Using the new auto-format function
+                keyboardType="numeric" 
+                maxLength={10} // <-- Prevents typing more than 10 characters
+              />
             </View>
             
             <View style={[styles.inputContainer, { flex: 1 }]}>
@@ -122,7 +199,6 @@ export default function LoginScreen() {
             </View>
           </View>
 
-          {/* --- FAKE DROPDOWN INPUTS --- */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Country</Text>
             <TouchableOpacity style={styles.dropdownInput} onPress={() => setShowCountryModal(true)}>
@@ -152,7 +228,6 @@ export default function LoginScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* --- COUNTRY SEARCH MODAL --- */}
       <Modal visible={showCountryModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -174,7 +249,6 @@ export default function LoginScreen() {
         </View>
       </Modal>
 
-      {/* --- EXERCISE SELECT MODAL --- */}
       <Modal visible={showExerciseModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -215,8 +289,6 @@ const styles = StyleSheet.create({
   primaryButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
   secondaryButton: { backgroundColor: '#E0E7FF', padding: 18, borderRadius: 15, alignItems: 'center' },
   secondaryButtonText: { color: '#7B61FF', fontSize: 16, fontWeight: 'bold' },
-
-  // --- NEW DROPDOWN & MODAL STYLES ---
   dropdownInput: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFF', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: '#E0E7FF' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 25, borderTopRightRadius: 25, padding: 25, maxHeight: '80%' },
