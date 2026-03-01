@@ -13,7 +13,8 @@ export default function HomeScreen() {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        // Look for the userName, if they didn't set one, just show the first part of their email
+        console.log("Here is the raw data from Supabase:", user.user_metadata);
+        
         if (user.user_metadata && user.user_metadata.userName) {
           setUserName(user.user_metadata.userName);
         } else {
@@ -43,10 +44,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Notification Bell on the right */}
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="notifications-outline" size={24} color="#333" />
-        </TouchableOpacity>
       </View>
 
       {/* The rest of your app UI will go below this! */}

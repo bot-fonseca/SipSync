@@ -6,12 +6,12 @@ export default function TabLayout() {
     <Tabs 
       screenOptions={{ 
         tabBarActiveTintColor: '#7B61FF',
-        headerShown: false, // <-- THIS IS THE MAGIC LINE!
+        headerShown: false, 
         tabBarStyle: {
           borderTopWidth: 0,
-          elevation: 0, // Removes shadow on Android
-          shadowOpacity: 0, // Removes shadow on iOS
-          height: 60, // Makes the bottom bar a little taller to match your design
+          elevation: 0, 
+          shadowOpacity: 0,
+          height: 60,
         }
       }}
     >

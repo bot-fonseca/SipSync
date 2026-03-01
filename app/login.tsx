@@ -29,6 +29,11 @@ export default function LoginScreen() {
   }
 
 async function signUpWithEmail() {
+    // 1. Force the app to check for the username and gender before sending!
+    if (!userName) {
+      Alert.alert("Missing Info", "Please enter a User Name.");
+      return;
+    }
     if (!gender) {
       Alert.alert("Missing Info", "Please select a gender.");
       return;
@@ -36,17 +41,26 @@ async function signUpWithEmail() {
 
     setLoading(true);
     const { error } = await supabase.auth.signUp({ 
-      email, 
-      password,
+      email: email, 
+      password: password,
       options: {
-        // Look very closely at this next line! 
-        // Is 'userName' inside these brackets?
-        data: { userName, age, gender, weight, height, phone } 
+        // 2. Explicitly tell Supabase exactly what data to save
+        data: { 
+          userName: userName, 
+          age: age, 
+          gender: gender, 
+          weight: weight, 
+          height: height, 
+          phone: phone 
+        }
       }
     });
 
-    if (error) Alert.alert('Error', error.message);
-    else router.replace('/');
+    if (error) {
+      Alert.alert('Error', error.message);
+    } else {
+      router.replace('/');
+    }
     setLoading(false);
   }
 
