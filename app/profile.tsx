@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Modal, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Modal, FlatList, useColorScheme } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -11,6 +11,19 @@ const COUNTRIES = ["Afghanistan", "Albania", "Algeria", "Argentina", "Australia"
 export default function ProfileScreen() {
   const router = useRouter();
   
+  // --- NEW: DARK MODE SETUP ---
+  const systemTheme = useColorScheme();
+  const [isDark, setIsDark] = useState(systemTheme === 'dark');
+
+  const theme = {
+    background: isDark ? '#121212' : '#F9F9FB',
+    text: isDark ? '#FFFFFF' : '#333333',
+    subtext: isDark ? '#A0A0A0' : '#888888',
+    card: isDark ? '#1E1E1E' : '#FFFFFF',
+    border: isDark ? '#333333' : '#E0E7FF',
+    inputBg: isDark ? '#2C2C2E' : '#F9F9FB',
+  };
+
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   
@@ -36,6 +49,12 @@ export default function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       async function loadUserData() {
+        // --- LOAD DARK MODE PREFERENCE ---
+        try {
+          const savedTheme = await AsyncStorage.getItem('@dark_mode');
+          if (savedTheme !== null) setIsDark(JSON.parse(savedTheme));
+        } catch (e) { console.log("Failed to load theme settings"); }
+
         try {
           const savedUnit = await AsyncStorage.getItem('@use_kg');
           if (savedUnit !== null) setIsMetric(JSON.parse(savedUnit));
@@ -129,68 +148,68 @@ export default function ProfileScreen() {
   const displayHeight = isMetric ? metadata.height : metadata.height ? (parseFloat(metadata.height) * 0.393701).toFixed(1) : '--';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       
       {/* HEADER */}
       <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => router.back()}><Ionicons name="close" size={28} color="#333" /></TouchableOpacity>
-        <Text style={styles.headerTitle}>My Profile</Text>
+        <TouchableOpacity onPress={() => router.back()}><Ionicons name="close" size={28} color={theme.text} /></TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>My Profile</Text>
         <TouchableOpacity onPress={() => isEditing ? handleSaveProfile() : setIsEditing(true)}>
           <Text style={styles.editButtonText}>{isEditing ? 'Save' : 'Edit'}</Text>
         </TouchableOpacity>
       </View>
 
       {/* INFO CARD */}
-      <View style={styles.infoCard}>
+      <View style={[styles.infoCard, { backgroundColor: theme.card }]}>
         <View style={styles.avatarCircle}><Text style={styles.avatarText}>{firstLetter}</Text></View>
         {isEditing ? (
-          <TextInput style={styles.editInputLine} value={editUserName} onChangeText={setEditUserName} placeholder="Username" />
+          <TextInput style={[styles.editInputLine, { color: theme.text, borderBottomColor: theme.border }]} placeholderTextColor={theme.subtext} value={editUserName} onChangeText={setEditUserName} placeholder="Username" />
         ) : (
-          <Text style={styles.nameText}>{metadata.userName || 'No Username'}</Text>
+          <Text style={[styles.nameText, { color: theme.text }]}>{metadata.userName || 'No Username'}</Text>
         )}
-        <Text style={styles.emailText}>{email}</Text>
+        <Text style={[styles.emailText, { color: theme.subtext }]}>{email}</Text>
 
-        {/* --- THE NEW 2x3 GRID --- */}
+        {/* --- THE 2x3 GRID --- */}
         <View style={styles.metricsGrid}>
           
-          <View style={styles.metricBox}>
-            {isEditing ? <TextInput style={styles.editGridInput} value={editDob} onChangeText={handleEditDobChange} placeholder="YYYY-MM-DD" keyboardType="numeric" maxLength={10} />
+          <View style={[styles.metricBox, { backgroundColor: theme.inputBg }]}>
+            {isEditing ? <TextInput style={[styles.editGridInput, { color: theme.text }]} placeholderTextColor={theme.subtext} value={editDob} onChangeText={handleEditDobChange} placeholder="YYYY-MM-DD" keyboardType="numeric" maxLength={10} />
             : <Text style={styles.metricValue}>{calculateAge(metadata.dob)}</Text>}
-            <Text style={styles.metricLabel}>{isEditing ? 'Birth' : 'Age'}</Text>
+            <Text style={[styles.metricLabel, { color: theme.subtext }]}>{isEditing ? 'Birth' : 'Age'}</Text>
           </View>
 
-          <View style={styles.metricBox}>
+          <View style={[styles.metricBox, { backgroundColor: theme.inputBg }]}>
             {isEditing ? (
               <View style={styles.genderToggleRow}>
-                <TouchableOpacity style={[styles.miniGenderBtn, editGender === 'M' && styles.miniGenderActive]} onPress={() => setEditGender('M')}><Text style={[styles.miniGenderText, editGender === 'M' && styles.miniGenderTextActive]}>M</Text></TouchableOpacity>
-                <TouchableOpacity style={[styles.miniGenderBtn, editGender === 'F' && styles.miniGenderActive]} onPress={() => setEditGender('F')}><Text style={[styles.miniGenderText, editGender === 'F' && styles.miniGenderTextActive]}>F</Text></TouchableOpacity>
+                <TouchableOpacity style={[styles.miniGenderBtn, { borderColor: theme.border }, editGender === 'M' && styles.miniGenderActive]} onPress={() => setEditGender('M')}><Text style={[styles.miniGenderText, { color: theme.subtext }, editGender === 'M' && styles.miniGenderTextActive]}>M</Text></TouchableOpacity>
+                <TouchableOpacity style={[styles.miniGenderBtn, { borderColor: theme.border }, editGender === 'F' && styles.miniGenderActive]} onPress={() => setEditGender('F')}><Text style={[styles.miniGenderText, { color: theme.subtext }, editGender === 'F' && styles.miniGenderTextActive]}>F</Text></TouchableOpacity>
               </View>
             ) : <Text style={styles.metricValue}>{metadata.gender || '--'}</Text>}
-            <Text style={styles.metricLabel}>Gender</Text>
+            <Text style={[styles.metricLabel, { color: theme.subtext }]}>Gender</Text>
           </View>
           
-          <View style={styles.metricBox}>
-            {isEditing ? <TextInput style={styles.editGridInput} value={editWeight} onChangeText={setEditWeight} keyboardType="numeric" placeholder={isMetric ? 'kg' : 'lbs'} />
+          <View style={[styles.metricBox, { backgroundColor: theme.inputBg }]}>
+            {isEditing ? <TextInput style={[styles.editGridInput, { color: theme.text }]} placeholderTextColor={theme.subtext} value={editWeight} onChangeText={setEditWeight} keyboardType="numeric" placeholder={isMetric ? 'kg' : 'lbs'} />
             : <Text style={styles.metricValue}>{displayWeight !== '--' ? `${displayWeight}` : '--'}</Text>}
-            <Text style={styles.metricLabel}>Weight ({isMetric ? 'kg' : 'lb'})</Text>
+            <Text style={[styles.metricLabel, { color: theme.subtext }]}>Weight ({isMetric ? 'kg' : 'lb'})</Text>
           </View>
 
-          <View style={styles.metricBox}>
-            {isEditing ? <TextInput style={styles.editGridInput} value={editHeight} onChangeText={setEditHeight} keyboardType="numeric" placeholder={isMetric ? 'cm' : 'in'} />
+          <View style={[styles.metricBox, { backgroundColor: theme.inputBg }]}>
+            {isEditing ? <TextInput style={[styles.editGridInput, { color: theme.text }]} placeholderTextColor={theme.subtext} value={editHeight} onChangeText={setEditHeight} keyboardType="numeric" placeholder={isMetric ? 'cm' : 'in'} />
             : <Text style={styles.metricValue}>{displayHeight !== '--' ? `${displayHeight}` : '--'}</Text>}
-            <Text style={styles.metricLabel}>Height ({isMetric ? 'cm' : 'in'})</Text>
+            <Text style={[styles.metricLabel, { color: theme.subtext }]}>Height ({isMetric ? 'cm' : 'in'})</Text>
           </View>
 
-          <TouchableOpacity style={styles.metricBox} disabled={!isEditing} onPress={() => setShowCountryModal(true)}>
-            {isEditing ? <Text style={[styles.editGridInput, { fontSize: 14, paddingTop: 5 }]} numberOfLines={1}>{editCountry || 'Select'}</Text>
+          <TouchableOpacity style={[styles.metricBox, { backgroundColor: theme.inputBg }]} disabled={!isEditing} onPress={() => setShowCountryModal(true)}>
+            {isEditing ? <Text style={[styles.editGridInput, { color: theme.text, fontSize: 14, paddingTop: 5 }]} numberOfLines={1}>{editCountry || 'Select'}</Text>
             : <Text style={[styles.metricValue, { fontSize: 16 }]} numberOfLines={1}>{metadata.country || '--'}</Text>}
-            <Text style={styles.metricLabel}>Country</Text>
+            <Text style={[styles.metricLabel, { color: theme.subtext }]}>Country</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.metricBox} disabled={!isEditing} onPress={() => setShowExerciseModal(true)}>
-            {isEditing ? <Text style={[styles.editGridInput, { fontSize: 14, paddingTop: 5 }]}>{formatExercise(editExercise) || 'Select'}</Text>
+          <TouchableOpacity style={[styles.metricBox, { backgroundColor: theme.inputBg }]} disabled={!isEditing} onPress={() => setShowExerciseModal(true)}>
+            {isEditing ? <Text style={[styles.editGridInput, { color: theme.text, fontSize: 14, paddingTop: 5 }]}>{formatExercise(editExercise) || 'Select'}</Text>
             : <Text style={[styles.metricValue, { fontSize: 16 }]} numberOfLines={1}>{formatExercise(metadata.exercise)}</Text>}
-            <Text style={styles.metricLabel}>Activity</Text>
+            <Text style={[styles.metricLabel, { color: theme.subtext }]}>Activity</Text>
           </TouchableOpacity>
 
         </View>
@@ -199,12 +218,12 @@ export default function ProfileScreen() {
       {/* BOTTOM CONTROLS */}
       {!isEditing && (
         <View style={styles.bottomControls}>
-          <TouchableOpacity style={styles.secondaryBtn} onPress={() => setShowPasswordModal(true)}>
+          <TouchableOpacity style={[styles.secondaryBtn, { backgroundColor: theme.card, borderColor: theme.border }]} onPress={() => setShowPasswordModal(true)}>
             <Ionicons name="lock-closed-outline" size={20} color="#7B61FF" style={{ marginRight: 8 }}/>
-            <Text style={styles.secondaryBtnText}>Change Password</Text>
+            <Text style={[styles.secondaryBtnText, { color: theme.text }]}>Change Password</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <TouchableOpacity style={[styles.logoutButton, { backgroundColor: theme.card }]} onPress={handleLogout}>
             <Ionicons name="log-out-outline" size={20} color="#FF4B4B" style={{ marginRight: 8 }}/>
             <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
@@ -214,11 +233,11 @@ export default function ProfileScreen() {
       {/* --- PASSWORD MODAL --- */}
       <Modal visible={showPasswordModal} animationType="fade" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Security</Text>
-            <Text style={styles.modalSubtitle}>Enter your new password below.</Text>
+          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Security</Text>
+            <Text style={[styles.modalSubtitle, { color: theme.subtext }]}>Enter your new password below.</Text>
             
-            <TextInput style={styles.passwordInput} placeholder="New Password" secureTextEntry value={newPassword} onChangeText={setNewPassword} autoFocus />
+            <TextInput style={[styles.passwordInput, { backgroundColor: theme.inputBg, color: theme.text }]} placeholderTextColor={theme.subtext} placeholder="New Password" secureTextEntry value={newPassword} onChangeText={setNewPassword} autoFocus />
 
             <View style={styles.modalButtonRow}>
               <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#FFE5E5' }]} onPress={() => setShowPasswordModal(false)}>
@@ -235,11 +254,11 @@ export default function ProfileScreen() {
       {/* --- COUNTRY & EXERCISE MODALS --- */}
       <Modal visible={showCountryModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Country</Text>
-            <TextInput style={styles.searchInput} placeholder="Search..." value={searchCountry} onChangeText={setSearchCountry} autoFocus />
+          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Select Country</Text>
+            <TextInput style={[styles.searchInput, { backgroundColor: theme.inputBg, color: theme.text }]} placeholderTextColor={theme.subtext} placeholder="Search..." value={searchCountry} onChangeText={setSearchCountry} autoFocus />
             <FlatList data={filteredCountries} keyExtractor={(item) => item} renderItem={({ item }) => (
-                <TouchableOpacity style={styles.modalOption} onPress={() => { setEditCountry(item); setShowCountryModal(false); setSearchCountry(''); }}><Text style={styles.modalOptionText}>{item}</Text></TouchableOpacity>
+                <TouchableOpacity style={[styles.modalOption, { borderBottomColor: theme.border }]} onPress={() => { setEditCountry(item); setShowCountryModal(false); setSearchCountry(''); }}><Text style={[styles.modalOptionText, { color: theme.text }]}>{item}</Text></TouchableOpacity>
               )} />
             <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowCountryModal(false)}><Text style={styles.modalCloseText}>Cancel</Text></TouchableOpacity>
           </View>
@@ -248,10 +267,10 @@ export default function ProfileScreen() {
 
       <Modal visible={showExerciseModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Activity</Text>
+          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Select Activity</Text>
             {EXERCISE_OPTIONS.map((option, index) => (
-              <TouchableOpacity key={index} style={styles.modalOption} onPress={() => { setEditExercise(option); setShowExerciseModal(false); }}><Text style={styles.modalOptionText}>{option}</Text></TouchableOpacity>
+              <TouchableOpacity key={index} style={[styles.modalOption, { borderBottomColor: theme.border }]} onPress={() => { setEditExercise(option); setShowExerciseModal(false); }}><Text style={[styles.modalOptionText, { color: theme.text }]}>{option}</Text></TouchableOpacity>
             ))}
             <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowExerciseModal(false)}><Text style={styles.modalCloseText}>Cancel</Text></TouchableOpacity>
           </View>
@@ -263,46 +282,45 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9F9FB', paddingHorizontal: 20, paddingTop: 40, paddingBottom: 30 },
+  container: { flex: 1, paddingHorizontal: 20, paddingTop: 40, paddingBottom: 30 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  headerTitle: { fontSize: 18, fontWeight: 'bold' },
   editButtonText: { fontSize: 16, fontWeight: 'bold', color: '#7B61FF' },
   
-  infoCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 20, alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10 },
+  infoCard: { borderRadius: 20, padding: 20, alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10 },
   avatarCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#E0E7FF', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
   avatarText: { fontSize: 24, fontWeight: 'bold', color: '#7B61FF' },
-  nameText: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 2 },
-  emailText: { fontSize: 14, color: '#555', marginBottom: 15 }, 
+  nameText: { fontSize: 20, fontWeight: 'bold', marginBottom: 2 },
+  emailText: { fontSize: 14, marginBottom: 15 }, 
 
-  editInputLine: { fontSize: 16, fontWeight: 'bold', color: '#333', borderBottomWidth: 1, borderBottomColor: '#E0E7FF', marginBottom: 5, textAlign: 'center', width: '80%', paddingVertical: 2 },
-  editGridInput: { fontSize: 14, fontWeight: 'bold', color: '#7B61FF', borderBottomWidth: 1, borderBottomColor: '#E0E7FF', marginBottom: 2, textAlign: 'center', width: '90%' }, 
+  editInputLine: { fontSize: 16, fontWeight: 'bold', borderBottomWidth: 1, marginBottom: 5, textAlign: 'center', width: '80%', paddingVertical: 2 },
+  editGridInput: { fontSize: 14, fontWeight: 'bold', color: '#7B61FF', borderBottomWidth: 1, borderBottomColor: 'transparent', marginBottom: 2, textAlign: 'center', width: '90%' }, 
   
-  // --- THE NEW 2x3 GRID (48% width naturally creates 2 columns) ---
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', width: '100%' },
-  metricBox: { width: '48%', backgroundColor: '#F9F9FB', padding: 12, borderRadius: 15, alignItems: 'center', marginBottom: 12, height: 75, justifyContent: 'center' },
+  metricBox: { width: '48%', padding: 12, borderRadius: 15, alignItems: 'center', marginBottom: 12, height: 75, justifyContent: 'center' },
   metricValue: { fontSize: 16, fontWeight: 'bold', color: '#7B61FF', marginBottom: 4 },
-  metricLabel: { fontSize: 10, color: '#888', fontWeight: '700', textTransform: 'uppercase' },
+  metricLabel: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
   
   genderToggleRow: { flexDirection: 'row', width: '90%', justifyContent: 'space-between', marginBottom: 4 },
-  miniGenderBtn: { flex: 1, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#E0E7FF', alignItems: 'center', marginHorizontal: 2 },
+  miniGenderBtn: { flex: 1, paddingVertical: 6, borderRadius: 8, borderWidth: 1, alignItems: 'center', marginHorizontal: 2 },
   miniGenderActive: { backgroundColor: '#7B61FF', borderColor: '#7B61FF' },
-  miniGenderText: { fontSize: 14, color: '#555', fontWeight: 'bold' },
+  miniGenderText: { fontSize: 14, fontWeight: 'bold' },
   miniGenderTextActive: { color: '#FFF' },
 
   bottomControls: { gap: 10, marginTop: 'auto' },
-  secondaryBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 16, backgroundColor: '#FFF', borderRadius: 15, borderWidth: 1, borderColor: '#E0E7FF' },
-  secondaryBtnText: { color: '#7B61FF', fontWeight: 'bold', fontSize: 16 },
-  logoutButton: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 16, backgroundColor: '#FFF', borderRadius: 15, borderWidth: 1, borderColor: '#FFE5E5' },
+  secondaryBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 16, borderRadius: 15, borderWidth: 1 },
+  secondaryBtnText: { fontWeight: 'bold', fontSize: 16 },
+  logoutButton: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 16, borderRadius: 15, borderWidth: 1, borderColor: '#FFE5E5' },
   logoutText: { color: '#FF4B4B', fontWeight: 'bold', fontSize: 16 },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 25, borderTopRightRadius: 25, padding: 25, maxHeight: '80%' },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 5, textAlign: 'center' },
-  modalSubtitle: { fontSize: 14, color: '#888', textAlign: 'center', marginBottom: 20 },
-  searchInput: { backgroundColor: '#F0F4FF', padding: 15, borderRadius: 12, fontSize: 16, marginBottom: 15 },
-  passwordInput: { backgroundColor: '#F0F4FF', padding: 15, borderRadius: 12, fontSize: 16, marginBottom: 20, textAlign: 'center' },
-  modalOption: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
-  modalOptionText: { fontSize: 16, color: '#333', textAlign: 'center' },
+  modalContent: { borderTopLeftRadius: 25, borderTopRightRadius: 25, padding: 25, maxHeight: '80%' },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 5, textAlign: 'center' },
+  modalSubtitle: { fontSize: 14, textAlign: 'center', marginBottom: 20 },
+  searchInput: { padding: 15, borderRadius: 12, fontSize: 16, marginBottom: 15 },
+  passwordInput: { padding: 15, borderRadius: 12, fontSize: 16, marginBottom: 20, textAlign: 'center' },
+  modalOption: { paddingVertical: 15, borderBottomWidth: 1 },
+  modalOptionText: { fontSize: 16, textAlign: 'center' },
   modalCloseBtn: { marginTop: 20, padding: 15, backgroundColor: '#FFE5E5', borderRadius: 12, alignItems: 'center' },
   modalCloseText: { color: '#FF4B4B', fontWeight: 'bold', fontSize: 16 },
   modalButtonRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
