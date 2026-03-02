@@ -4,11 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SettingsScreen() {
-  const systemTheme = useColorScheme();
+  const systemTheme = useColorScheme(); // Reads the phone's global setting (light or dark)
+  
   const [isDarkMode, setIsDarkMode] = useState(systemTheme === 'dark');
-  const [useKg, setUseKg] = useState(true); // true = Kg, false = Lbs
+  const [useSystemTheme, setUseSystemTheme] = useState(true); // NEW: Auto Theme Toggle
+  const [useKg, setUseKg] = useState(true); 
 
-  // --- DYNAMIC THEME COLORS ---
   const theme = {
     background: isDarkMode ? '#121212' : '#F9F9FB',
     text: isDarkMode ? '#FFFFFF' : '#333333',
@@ -16,33 +17,55 @@ export default function SettingsScreen() {
     border: isDarkMode ? '#333333' : '#F0F0F0',
   };
 
-  // 1. When the screen loads, check if they saved preferences before
   useEffect(() => {
     async function loadSettings() {
       try {
+        const savedSystem = await AsyncStorage.getItem('@system_theme');
         const savedTheme = await AsyncStorage.getItem('@dark_mode');
         const savedUnit = await AsyncStorage.getItem('@use_kg');
         
-        if (savedTheme !== null) setIsDarkMode(JSON.parse(savedTheme));
+        if (savedSystem !== null) {
+          const isSystem = JSON.parse(savedSystem);
+          setUseSystemTheme(isSystem);
+          // If Auto is on, force it to match the phone
+          if (isSystem) setIsDarkMode(systemTheme === 'dark');
+          else if (savedTheme !== null) setIsDarkMode(JSON.parse(savedTheme));
+        } else if (savedTheme !== null) {
+          setIsDarkMode(JSON.parse(savedTheme));
+        }
+
         if (savedUnit !== null) setUseKg(JSON.parse(savedUnit));
       } catch (e) {
         console.log('Failed to load settings', e);
       }
     }
     loadSettings();
-  }, []);
+  }, [systemTheme]); // Re-runs if the user changes their phone's global settings!
 
-  // 2. When they flip the Theme switch, update the screen AND save it
+  // --- NEW: AUTO THEME TOGGLE ---
+  async function toggleSystemTheme(value: boolean) {
+    setUseSystemTheme(value);
+    await AsyncStorage.setItem('@system_theme', JSON.stringify(value));
+    
+    if (value) {
+      // If turned ON, instantly match the phone's system theme
+      const currentSystemDark = systemTheme === 'dark';
+      setIsDarkMode(currentSystemDark);
+      await AsyncStorage.setItem('@dark_mode', JSON.stringify(currentSystemDark));
+      DeviceEventEmitter.emit('themeChanged', currentSystemDark); 
+    }
+  }
+
+  // MANUAL THEME TOGGLE
   async function toggleDarkMode(value: boolean) {
     setIsDarkMode(value);
-    await AsyncStorage.setItem('@dark_mode', JSON.stringify(value));
+    setUseSystemTheme(false); // Instantly turn off "Auto" if they manually override it
     
-    // --- THE WALKIE-TALKIE SIGNAL ---
-    // This tells _layout.tsx (the bottom bar) to instantly change colors!
+    await AsyncStorage.setItem('@system_theme', JSON.stringify(false));
+    await AsyncStorage.setItem('@dark_mode', JSON.stringify(value));
     DeviceEventEmitter.emit('themeChanged', value); 
   }
 
-  // 3. When they flip the Unit switch, update the screen AND save it
   async function toggleUnit(value: boolean) {
     setUseKg(value);
     await AsyncStorage.setItem('@use_kg', JSON.stringify(value));
@@ -54,7 +77,21 @@ export default function SettingsScreen() {
 
       <View style={[styles.section, { backgroundColor: theme.card }]}>
         
-        {/* Theme Toggle */}
+        {/* NEW: Auto System Theme Toggle */}
+        <View style={[styles.item, { borderBottomColor: theme.border }]}>
+          <View style={styles.itemLeft}>
+            <Ionicons name="phone-portrait-outline" size={22} color="#7B61FF" />
+            <Text style={[styles.itemText, { color: theme.text }]}>Use Device Settings</Text>
+          </View>
+          <Switch 
+            value={useSystemTheme} 
+            onValueChange={toggleSystemTheme} 
+            thumbColor={useSystemTheme ? "#7B61FF" : "#FFF"} 
+            trackColor={{ false: "#D1D1D1", true: "#E0E7FF" }} 
+          />
+        </View>
+
+        {/* Manual Theme Toggle */}
         <View style={[styles.item, { borderBottomColor: theme.border }]}>
           <View style={styles.itemLeft}>
             <Ionicons name={isDarkMode ? "moon" : "sunny"} size={22} color="#7B61FF" />
@@ -67,10 +104,11 @@ export default function SettingsScreen() {
             onValueChange={toggleDarkMode} 
             thumbColor={isDarkMode ? "#7B61FF" : "#FFF"} 
             trackColor={{ false: "#D1D1D1", true: "#E0E7FF" }} 
+            disabled={useSystemTheme} // Gray it out slightly if Auto is taking control
           />
         </View>
 
-        {/* Unit Toggle (Removed bottom border since it's the last item) */}
+        {/* Unit Toggle */}
         <View style={[styles.item, { borderBottomWidth: 0 }]}>
           <View style={styles.itemLeft}>
             <Ionicons name="barbell-outline" size={22} color="#7B61FF" />
