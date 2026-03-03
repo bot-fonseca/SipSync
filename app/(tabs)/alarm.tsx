@@ -1,19 +1,10 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, FlatList, Alert, useColorScheme, Platform } from 'react-native';
+import React, { useState, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, FlatList, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/supabase';
-import * as Notifications from 'expo-notifications';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,   
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+import notifee, { TriggerType, AndroidImportance, TimestampTrigger } from '@notifee/react-native';
 
 const WATER_FACTS = [
   "💧 Did you know? Your brain is 73% water. Drink up to keep it fueled!",
@@ -25,7 +16,6 @@ const WATER_FACTS = [
   "🚀 Cold water can temporarily boost your metabolism."
 ];
 
-const INTERVAL_OPTIONS = [1, 2, 3, 4]; 
 const TIMES = [
   "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
   "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM", 
@@ -66,7 +56,6 @@ export default function AlarmScreen() {
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [timePickerTarget, setTimePickerTarget] = useState<'start' | 'end' | 'specific'>('start');
 
-  // We use this so we only "Top Up" the alarms once when you open the app, keeping things fast!
   const hasToppedUp = useRef(false);
 
   useFocusEffect(
@@ -103,7 +92,6 @@ export default function AlarmScreen() {
           setIntervalEnd(al.intervalEnd ?? "11:00 PM");
           setSpecificTimes(al.specificTimes ?? ["10:00 AM", "08:00 PM"]);
 
-          // Secretly top up our future alarms when the screen loads
           if (!hasToppedUp.current) {
             hasToppedUp.current = true;
             scheduleAllAlarms(
@@ -120,34 +108,34 @@ export default function AlarmScreen() {
     }, [])
   );
 
-  // --- THE NEW "FUTURE PROJECTION" ALARM ENGINE ---
+  // --- THE NEW NOTIFEE ENGINE ---
   async function scheduleAllAlarms(
     iEnabled: boolean, iHours: number, iStart: string, iEnd: string, sTimes: string[]
   ) {
     try {
-      await Notifications.cancelAllScheduledNotificationsAsync();
-      
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') return;
+      // 1. Ask for exact permission
+      await notifee.requestPermission();
 
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('water-reminders', {
-          name: 'Water Reminders',
-          importance: Notifications.AndroidImportance.MAX, 
-          vibrationPattern: [0, 250, 250, 250], 
-          lightColor: '#43C6FF', 
-        });
-      }
+      // 2. Wipe every ghost alarm from Android's memory instantly
+      await notifee.cancelAllNotifications();
+
+      // 3. Create the robust Android channel
+      const channelId = await notifee.createChannel({
+        id: 'water-reminders',
+        name: 'Water Reminders',
+        importance: AndroidImportance.HIGH,
+      });
 
       const now = new Date();
       const futureAlarms = [];
       const dailyTimes = []; 
 
-      // 1. Gather all the base times for a single day
+      // Gather Strict Reminders
       for (const timeStr of sTimes) {
         dailyTimes.push({ ...parseTime(timeStr), isStrict: true });
       }
 
+      // Gather Intervals
       if (iEnabled) {
         const start = parseTime(iStart);
         const end = parseTime(iEnd);
@@ -160,45 +148,48 @@ export default function AlarmScreen() {
         }
       }
 
-      // 2. Project those times 14 days into the future!
+      // Project into the next 14 days
       for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
         for (const dt of dailyTimes) {
           const alarmDate = new Date();
           alarmDate.setDate(now.getDate() + dayOffset);
           alarmDate.setHours(dt.hours, dt.minutes, 0, 0);
 
-          // ONLY add the alarm if the time is strictly in the future. 
-          // This destroys the "Instant Firing" bug forever!
           if (alarmDate > now) {
             futureAlarms.push({ date: alarmDate, isStrict: dt.isStrict });
           }
         }
       }
 
-      // 3. Sort chronologically and cap at 60 to respect iPhone/Android max limits
       futureAlarms.sort((a, b) => a.date.getTime() - b.date.getTime());
-      const cappedAlarms = futureAlarms.slice(0, 60);
+      const cappedAlarms = futureAlarms.slice(0, 50);
 
-      // 4. Schedule them all simultaneously for lightning-fast performance
-      const schedulingPromises = cappedAlarms.map(alarm => {
-        const content = alarm.isStrict
-          ? { title: "💧 Time to Hydrate!", body: "This is your reminder to drink a glass of water.", sound: true }
-          : { title: "Did you know? 🤔", body: WATER_FACTS[Math.floor(Math.random() * WATER_FACTS.length)], sound: true };
+      // Schedule them securely with Notifee
+      for (const alarm of cappedAlarms) {
+        const trigger: TimestampTrigger = {
+          type: TriggerType.TIMESTAMP,
+          timestamp: alarm.date.getTime(),
+        };
 
-        return Notifications.scheduleNotificationAsync({
-          content,
-          trigger: { 
-            date: alarm.date, // Sending the exact future date blocks Android from back-firing
-            channelId: 'water-reminders' 
+        const title = alarm.isStrict ? "💧 Time to Hydrate!" : "Did you know? 🤔";
+        const body = alarm.isStrict 
+          ? "This is your reminder to drink a glass of water." 
+          : WATER_FACTS[Math.floor(Math.random() * WATER_FACTS.length)];
+
+        await notifee.createTriggerNotification({
+          title,
+          body,
+          android: {
+            channelId,
+            pressAction: { id: 'default' },
           },
-        });
-      });
+        }, trigger);
+      }
 
-      await Promise.all(schedulingPromises);
-      console.log(`Successfully scheduled ${cappedAlarms.length} perfectly timed future alarms.`);
+      console.log(`Notifee scheduled ${cappedAlarms.length} perfectly timed alarms.`);
 
     } catch (error) {
-      console.log("Error scheduling notifications:", error);
+      console.log("Error scheduling Notifee:", error);
     }
   }
 
@@ -255,13 +246,6 @@ export default function AlarmScreen() {
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.headerRow}>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Reminders</Text>
-      </View>
-
-      <View style={styles.gaugeContainer}>
-        <View style={[styles.outerCircle, { borderColor: theme.border }]}>
-          <Text style={[styles.gaugeText, { color: theme.text }]}>{currentIntake}/{dailyTarget} {unitLabel}</Text>
-          <Text style={{color: theme.subtext, fontSize: 12}}>Today's Intake</Text>
-        </View>
       </View>
 
       <View style={[styles.card, { backgroundColor: theme.card }]}>
