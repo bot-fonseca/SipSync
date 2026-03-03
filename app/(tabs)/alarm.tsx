@@ -1,14 +1,11 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, FlatList, Alert, useColorScheme, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../lib/supabase';
+import * as Notifications from 'expo-notifications';
 
-// 🛑 TEMPORARILY MUTED FOR EXPO GO 🛑
-// When you are ready to build the real app, uncomment the import and the handler below!
-// import * as Notifications from 'expo-notifications';
-/*
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -17,7 +14,6 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
-*/
 
 const WATER_FACTS = [
   "💧 Did you know? Your brain is 73% water. Drink up to keep it fueled!",
@@ -70,6 +66,9 @@ export default function AlarmScreen() {
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [timePickerTarget, setTimePickerTarget] = useState<'start' | 'end' | 'specific'>('start');
 
+  // We use this so we only "Top Up" the alarms once when you open the app, keeping things fast!
+  const hasToppedUp = useRef(false);
+
   useFocusEffect(
     useCallback(() => {
       async function loadData() {
@@ -96,25 +95,111 @@ export default function AlarmScreen() {
         } catch (e) {}
 
         const { data: { user } } = await supabase.auth.getUser();
-        if (user && user.user_metadata && user.user_metadata.smart_alarms) {
-          const al = user.user_metadata.smart_alarms;
+        if (user && user.user_metadata) {
+          const al = user.user_metadata.smart_alarms || {};
           setIntervalEnabled(al.intervalEnabled ?? false);
           setIntervalHours(al.intervalHours ?? 3);
           setIntervalStart(al.intervalStart ?? "09:00 AM");
           setIntervalEnd(al.intervalEnd ?? "11:00 PM");
           setSpecificTimes(al.specificTimes ?? ["10:00 AM", "08:00 PM"]);
+
+          // Secretly top up our future alarms when the screen loads
+          if (!hasToppedUp.current) {
+            hasToppedUp.current = true;
+            scheduleAllAlarms(
+              al.intervalEnabled ?? false,
+              al.intervalHours ?? 3,
+              al.intervalStart ?? "09:00 AM",
+              al.intervalEnd ?? "11:00 PM",
+              al.specificTimes ?? ["10:00 AM", "08:00 PM"]
+            );
+          }
         }
       }
       loadData();
     }, [])
   );
 
+  // --- THE NEW "FUTURE PROJECTION" ALARM ENGINE ---
   async function scheduleAllAlarms(
     iEnabled: boolean, iHours: number, iStart: string, iEnd: string, sTimes: string[]
   ) {
-    // 🛑 TEMPORARILY MUTED FOR EXPO GO 🛑
-    console.log("Expo Go Mode: Notifications are muted so the app won't crash.");
-    Alert.alert("Alarms Saved!", "Your alarm preferences were saved to the cloud. To hear them ring, compile a Development Build.");
+    try {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') return;
+
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('water-reminders', {
+          name: 'Water Reminders',
+          importance: Notifications.AndroidImportance.MAX, 
+          vibrationPattern: [0, 250, 250, 250], 
+          lightColor: '#43C6FF', 
+        });
+      }
+
+      const now = new Date();
+      const futureAlarms = [];
+      const dailyTimes = []; 
+
+      // 1. Gather all the base times for a single day
+      for (const timeStr of sTimes) {
+        dailyTimes.push({ ...parseTime(timeStr), isStrict: true });
+      }
+
+      if (iEnabled) {
+        const start = parseTime(iStart);
+        const end = parseTime(iEnd);
+        let cH = start.hours;
+        while (cH <= end.hours) {
+          if (!sTimes.some(st => parseTime(st).hours === cH)) {
+            dailyTimes.push({ hours: cH, minutes: 0, isStrict: false });
+          }
+          cH += iHours;
+        }
+      }
+
+      // 2. Project those times 14 days into the future!
+      for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
+        for (const dt of dailyTimes) {
+          const alarmDate = new Date();
+          alarmDate.setDate(now.getDate() + dayOffset);
+          alarmDate.setHours(dt.hours, dt.minutes, 0, 0);
+
+          // ONLY add the alarm if the time is strictly in the future. 
+          // This destroys the "Instant Firing" bug forever!
+          if (alarmDate > now) {
+            futureAlarms.push({ date: alarmDate, isStrict: dt.isStrict });
+          }
+        }
+      }
+
+      // 3. Sort chronologically and cap at 60 to respect iPhone/Android max limits
+      futureAlarms.sort((a, b) => a.date.getTime() - b.date.getTime());
+      const cappedAlarms = futureAlarms.slice(0, 60);
+
+      // 4. Schedule them all simultaneously for lightning-fast performance
+      const schedulingPromises = cappedAlarms.map(alarm => {
+        const content = alarm.isStrict
+          ? { title: "💧 Time to Hydrate!", body: "This is your reminder to drink a glass of water.", sound: true }
+          : { title: "Did you know? 🤔", body: WATER_FACTS[Math.floor(Math.random() * WATER_FACTS.length)], sound: true };
+
+        return Notifications.scheduleNotificationAsync({
+          content,
+          trigger: { 
+            date: alarm.date, // Sending the exact future date blocks Android from back-firing
+            channelId: 'water-reminders' 
+          },
+        });
+      });
+
+      await Promise.all(schedulingPromises);
+      console.log(`Successfully scheduled ${cappedAlarms.length} perfectly timed future alarms.`);
+
+    } catch (error) {
+      console.log("Error scheduling notifications:", error);
+    }
   }
 
   async function saveSettings(
