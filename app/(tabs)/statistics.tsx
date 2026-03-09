@@ -92,13 +92,33 @@ export default function StatisticsScreen() {
           return { day: item.day, amount: adjAmount, target: adjTarget };
         });
 
-        // 3. STITCH TOGETHER
-        const pastDaysOnly = adjustedHistory.filter(d => d.day !== todayDayName);
-        const finalChartData = [...pastDaysOnly, { day: todayDayName, amount: liveAmount, target: liveTarget }];
-        
-        if (finalChartData.length > 7) finalChartData.splice(0, finalChartData.length - 7);
+        // 3. STITCH TOGETHER & FILL MISSING DAYS
+        const last7Days = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          last7Days.push(dayNames[d.getDay()]);
+        }
 
-        setHistory(finalChartData);
+        // Create a quick dictionary of the data we DO have
+        const dataMap: any = {};
+        adjustedHistory.forEach((item: any) => {
+          dataMap[item.day] = item;
+        });
+        // Always set today's live data
+        dataMap[todayDayName] = { day: todayDayName, amount: liveAmount, target: liveTarget };
+
+        // Build the final 7-day array, filling in zeros for skipped days!
+        const finalChartData = last7Days.map(dayName => {
+          if (dataMap[dayName]) {
+            return dataMap[dayName];
+          } else {
+            return { day: dayName, amount: 0, target: metricPref ? 2000 : 68 };
+          }
+        });
+
+        // (Remember to add .reverse() here if you still want "Today" on the left side of the chart!)
+        setHistory([...finalChartData].reverse());
 
         // 4. CALCULATE WEEKLY AVERAGE
         const total = finalChartData.reduce((sum: number, day: DayData) => sum + day.amount, 0);
