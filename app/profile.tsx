@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '../contexts/ThemeContext';
 
 const EXERCISE_OPTIONS = ["Sedentary (Little to none)", "Light (1-3 times/week)", "Moderate (3-5 times/week)", "High (5-7 times/week)", "Extreme (Heavy exercise/job)"];
 const COUNTRIES = ["Afghanistan", "Albania", "Algeria", "Argentina", "Australia", "Brazil", "Canada", "China", "Colombia", "France", "Germany", "India", "Italy", "Japan", "Mexico", "Portugal", "Puerto Rico", "Spain", "United Kingdom", "United States", "Venezuela"];
@@ -12,8 +13,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   
   // --- NEW: DARK MODE SETUP ---
-  const systemTheme = useColorScheme();
-  const [isDark, setIsDark] = useState(systemTheme === 'dark');
+  const { isDark } = useTheme();
 
   const theme = {
     background: isDark ? '#121212' : '#F9F9FB',
@@ -49,16 +49,11 @@ export default function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       async function loadUserData() {
-        // --- LOAD DARK MODE PREFERENCE ---
-        try {
-          const savedTheme = await AsyncStorage.getItem('@dark_mode');
-          if (savedTheme !== null) setIsDark(JSON.parse(savedTheme));
-        } catch (e) { console.log("Failed to load theme settings"); }
-
+        // Unidade de medida
         try {
           const savedUnit = await AsyncStorage.getItem('@use_kg');
           if (savedUnit !== null) setIsMetric(JSON.parse(savedUnit));
-        } catch (e) { console.log("Failed to load unit settings"); }
+        } catch (e) {}
 
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -68,9 +63,9 @@ export default function ProfileScreen() {
             setEditUserName(user.user_metadata.userName || '');
             setEditDob(user.user_metadata.dob || '');
             setEditGender(user.user_metadata.gender || '');
-            setEditCountry(user.user_metadata.country || '');     
-            setEditExercise(user.user_metadata.exercise || '');   
-            
+            setEditCountry(user.user_metadata.country || '');
+            setEditExercise(user.user_metadata.exercise || '');
+
             const rawWeight = parseFloat(user.user_metadata.weight || '0');
             const rawHeight = parseFloat(user.user_metadata.height || '0');
             const metricCheck = await AsyncStorage.getItem('@use_kg');
@@ -80,8 +75,8 @@ export default function ProfileScreen() {
               setEditWeight(user.user_metadata.weight || '');
               setEditHeight(user.user_metadata.height || '');
             } else {
-              setEditWeight(rawWeight ? (rawWeight * 2.20462).toFixed(1).toString() : '');
-              setEditHeight(rawHeight ? (rawHeight * 0.393701).toFixed(1).toString() : '');
+              setEditWeight(rawWeight ? (rawWeight * 2.20462).toFixed(1) : '');
+              setEditHeight(rawHeight ? (rawHeight * 0.393701).toFixed(1) : '');
             }
           }
         }
