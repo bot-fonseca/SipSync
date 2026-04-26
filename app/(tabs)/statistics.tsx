@@ -55,6 +55,7 @@ export default function StatisticsScreen() {
         setWeeklyAverage(Math.round(total / converted.length));
 
         // 5. Streak — dias consecutivos a atingir o objetivo
+        // converted[0] = há 6 dias, converted[6] = hoje
         let currentStreak = 0;
         for (let i = converted.length - 1; i >= 0; i--) {
           const d = converted[i];
@@ -63,8 +64,16 @@ export default function StatisticsScreen() {
           if (d.amount >= d.target) {
             currentStreak++;
           } else {
-            if (isToday) continue; // hoje ainda pode melhorar
-            else break;
+            if (isToday && d.amount > 0) {
+              // Hoje ainda não atingiu mas já bebeu algo — não quebra o streak
+              continue;
+            } else if (isToday && d.amount === 0) {
+              // Hoje não bebeu nada ainda — não conta mas também não quebra
+              continue;
+            } else {
+              // Dia passado sem atingir o objetivo — quebra o streak
+              break;
+            }
           }
         }
         setStreak(currentStreak);

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, FlatList, useColorScheme } from 'react-native';
+import React, { useState } from 'react';
+import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal, FlatList } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { upsertSettings } from '../lib/waterService';
+import { useTheme } from '../contexts/ThemeContext';
 
 const EXERCISE_OPTIONS = [
   "Sedentary (Little to none)",
@@ -84,13 +84,9 @@ function calculateTargetMl(meta: {
 
 export default function LoginScreen() {
   const router = useRouter();
-  const systemTheme = useColorScheme();
+  const { isDark } = useTheme();
   const [loading, setLoading] = useState(false);
   const [isSignUpMode, setIsSignUpMode] = useState(false);
-
-  const [useSystemTheme, setUseSystemTheme] = useState(true);
-  const [isDarkManual, setIsDarkManual] = useState(false);
-  const isDark = useSystemTheme ? systemTheme === 'dark' : isDarkManual;
 
   const theme = {
     background: isDark ? '#121212' : '#F9F9FB',
@@ -118,36 +114,6 @@ export default function LoginScreen() {
   const filteredCountries = COUNTRIES.filter(c =>
     c.toLowerCase().includes(searchCountry.toLowerCase())
   );
-
-  useEffect(() => {
-    async function loadTheme() {
-      try {
-        const savedSystem = await AsyncStorage.getItem('@system_theme');
-        const savedDark = await AsyncStorage.getItem('@dark_mode');
-        if (savedSystem !== null) setUseSystemTheme(JSON.parse(savedSystem));
-        if (savedDark !== null) setIsDarkManual(JSON.parse(savedDark));
-      } catch (e) {}
-    }
-    loadTheme();
-  }, [systemTheme]);
-
-  async function cycleTheme() {
-    if (useSystemTheme) {
-      setUseSystemTheme(false);
-      setIsDarkManual(true);
-      await AsyncStorage.setItem('@system_theme', JSON.stringify(false));
-      await AsyncStorage.setItem('@dark_mode', JSON.stringify(true));
-    } else if (isDarkManual) {
-      setIsDarkManual(false);
-      await AsyncStorage.setItem('@dark_mode', JSON.stringify(false));
-    } else {
-      setUseSystemTheme(true);
-      await AsyncStorage.setItem('@system_theme', JSON.stringify(true));
-    }
-  }
-
-  const themeLabel = useSystemTheme ? "Auto" : (isDarkManual ? "Dark" : "Light");
-  const themeIcon: any = useSystemTheme ? "phone-portrait-outline" : (isDarkManual ? "moon" : "sunny");
 
   function handleDobChange(text: string) {
     const cleaned = text.replace(/\D/g, '');
@@ -202,7 +168,6 @@ export default function LoginScreen() {
       return;
     }
 
-    // Calcula e guarda o target na BD logo no registo
     const targetMl = calculateTargetMl({ dob, gender, weight, country, exercise });
     await upsertSettings({ daily_target_ml: targetMl, use_metric: true, bottle_size_ml: 500 });
 
@@ -212,17 +177,6 @@ export default function LoginScreen() {
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}>
-
-      <View style={styles.topRow}>
-        <TouchableOpacity
-          style={[styles.themePill, { backgroundColor: theme.card, borderColor: theme.border }]}
-          onPress={cycleTheme}
-        >
-          <Ionicons name={themeIcon} size={16} color={theme.text} />
-          <Text style={[styles.themePillText, { color: theme.text }]}>{themeLabel}</Text>
-        </TouchableOpacity>
-      </View>
-
       <Text style={[styles.header, { color: theme.text }]}>
         {isSignUpMode ? 'Create Account' : 'Welcome Back'}
       </Text>
@@ -424,9 +378,6 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: 25, justifyContent: 'center', paddingVertical: 50 },
-  topRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 20 },
-  themePill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
-  themePillText: { marginLeft: 6, fontSize: 14, fontWeight: '600' },
   header: { fontSize: 32, fontWeight: 'bold', marginBottom: 5 },
   subtitle: { fontSize: 16, marginBottom: 30 },
   inputContainer: { marginBottom: 15 },

@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, FlatList, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getSettings, upsertSettings } from '../../lib/waterService';
@@ -27,17 +26,30 @@ const WATER_FACTS = [
   "Cold water can temporarily boost your metabolism.",
 ];
 
-const TIMES = [
-  "07:00 AM", "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
-  "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM",
-  "07:00 PM", "08:00 PM", "09:00 PM", "09:49 PM", "10:00 PM", "11:00 PM"
+const HOURS = [
+  "07 AM", "08 AM", "09 AM", "10 AM", "11 AM", "12 PM",
+  "01 PM", "02 PM", "03 PM", "04 PM", "05 PM", "06 PM",
+  "07 PM", "08 PM", "09 PM", "10 PM", "11 PM"
 ];
+
+const MINUTES = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"];
 
 const INTERVAL_OPTIONS = [1, 2, 3, 4, 6];
 
 function parseTime(timeStr: string): { hours: number; minutes: number } {
-  const [time, modifier] = timeStr.split(' ');
-  let [hours, minutes] = time.split(':').map(Number);
+  const parts = timeStr.split(' ');
+  const modifier = parts[parts.length - 1];
+  const timePart = parts[0];
+
+  let hours: number;
+  let minutes = 0;
+
+  if (timePart.includes(':')) {
+    [hours, minutes] = timePart.split(':').map(Number);
+  } else {
+    hours = parseInt(timePart);
+  }
+
   if (hours === 12) hours = 0;
   if (modifier === 'PM') hours += 12;
   return { hours, minutes };
@@ -46,10 +58,7 @@ function parseTime(timeStr: string): { hours: number; minutes: number } {
 async function requestPermissions(): Promise<boolean> {
   const { status } = await Notifications.requestPermissionsAsync();
   if (status !== 'granted') {
-    Alert.alert(
-      'Permission Required',
-      'Please enable notifications in your device settings to receive water reminders.',
-    );
+    Alert.alert('Permission Required', 'Please enable notifications in your device settings.');
     return false;
   }
   return true;
@@ -63,12 +72,9 @@ async function scheduleAllNotifications(
   specificTimes: string[],
 ) {
   await Notifications.cancelAllScheduledNotificationsAsync();
-
   const hasPermission = await requestPermissions();
   if (!hasPermission) return;
 
-  // Agenda os "Strict Reminders" — repetem todos os dias
-  // Strict reminders
   for (const timeStr of specificTimes) {
     const { hours, minutes } = parseTime(timeStr);
     await Notifications.scheduleNotificationAsync({
@@ -85,16 +91,13 @@ async function scheduleAllNotifications(
     });
   }
 
-  // Intervalos
   if (intervalEnabled) {
     const start = parseTime(intervalStart);
     const end = parseTime(intervalEnd);
     let currentHour = start.hours;
 
     while (currentHour <= end.hours) {
-      const alreadyExists = specificTimes.some(
-        t => parseTime(t).hours === currentHour
-      );
+      const alreadyExists = specificTimes.some(t => parseTime(t).hours === currentHour);
       if (!alreadyExists) {
         const fact = WATER_FACTS[Math.floor(Math.random() * WATER_FACTS.length)];
         await Notifications.scheduleNotificationAsync({
@@ -140,6 +143,7 @@ export default function AlarmScreen() {
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [showIntervalModal, setShowIntervalModal] = useState(false);
   const [timePickerTarget, setTimePickerTarget] = useState<'start' | 'end' | 'specific'>('start');
+  const [selectedHour, setSelectedHour] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -148,17 +152,11 @@ export default function AlarmScreen() {
         const settings = await getSettings();
         const al = settings?.alarm_config ?? {};
 
-        const iEnabled = al.intervalEnabled ?? false;
-        const iHours = al.intervalHours ?? 3;
-        const iStart = al.intervalStart ?? "09:00 AM";
-        const iEnd = al.intervalEnd ?? "11:00 PM";
-        const sTimes = al.specificTimes ?? ["10:00 AM", "08:00 PM"];
-
-        setIntervalEnabled(iEnabled);
-        setIntervalHours(iHours);
-        setIntervalStart(iStart);
-        setIntervalEnd(iEnd);
-        setSpecificTimes(sTimes);
+        setIntervalEnabled(al.intervalEnabled ?? false);
+        setIntervalHours(al.intervalHours ?? 3);
+        setIntervalStart(al.intervalStart ?? "09:00 AM");
+        setIntervalEnd(al.intervalEnd ?? "11:00 PM");
+        setSpecificTimes(al.specificTimes ?? ["10:00 AM", "08:00 PM"]);
 
         await updateNextNotification();
       }
@@ -168,33 +166,28 @@ export default function AlarmScreen() {
 
   async function updateNextNotification() {
     const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-    if (scheduled.length === 0) {
-      setNextNotification(null);
-      return;
-    }
+    if (scheduled.length === 0) { setNextNotification(null); return; }
 
     const now = new Date();
-    const today = new Date();
-
-    // Encontra a próxima notificação hoje
     let nextTime: Date | null = null;
+
     for (const notif of scheduled) {
       const trigger = notif.trigger as any;
       if (trigger?.hour !== undefined) {
-        const candidate = new Date(today);
+        const candidate = new Date();
         candidate.setHours(trigger.hour, trigger.minute ?? 0, 0, 0);
-        if (candidate > now) {
-          if (!nextTime || candidate < nextTime) nextTime = candidate;
+        if (candidate > now && (!nextTime || candidate < nextTime)) {
+          nextTime = candidate;
         }
       }
     }
 
     if (nextTime) {
-      const hours = nextTime.getHours();
-      const minutes = nextTime.getMinutes();
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      const displayH = hours % 12 === 0 ? 12 : hours % 12;
-      const displayM = minutes.toString().padStart(2, '0');
+      const h = nextTime.getHours();
+      const m = nextTime.getMinutes();
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const displayH = h % 12 === 0 ? 12 : h % 12;
+      const displayM = m.toString().padStart(2, '0');
       setNextNotification(`${displayH}:${displayM} ${ampm}`);
     } else {
       setNextNotification(null);
@@ -205,13 +198,7 @@ export default function AlarmScreen() {
     iEnabled: boolean, iHours: number, iStart: string, iEnd: string, sTimes: string[]
   ) {
     await upsertSettings({
-      alarm_config: {
-        intervalEnabled: iEnabled,
-        intervalHours: iHours,
-        intervalStart: iStart,
-        intervalEnd: iEnd,
-        specificTimes: sTimes,
-      }
+      alarm_config: { intervalEnabled: iEnabled, intervalHours: iHours, intervalStart: iStart, intervalEnd: iEnd, specificTimes: sTimes }
     });
     await scheduleAllNotifications(iEnabled, iHours, iStart, iEnd, sTimes);
     await updateNextNotification();
@@ -230,6 +217,7 @@ export default function AlarmScreen() {
 
   const handleTimeSelect = (selectedTime: string) => {
     setShowTimeModal(false);
+    setSelectedHour(null);
     if (timePickerTarget === 'start') {
       setIntervalStart(selectedTime);
       saveAndSchedule(intervalEnabled, intervalHours, selectedTime, intervalEnd, specificTimes);
@@ -253,7 +241,6 @@ export default function AlarmScreen() {
     saveAndSchedule(intervalEnabled, hours, intervalStart, intervalEnd, specificTimes);
   };
 
-  // Lista visual de todos os alarmes activos
   const allAlarms: { time: string; isStrict: boolean }[] = [];
   specificTimes.forEach(t => allAlarms.push({ time: t, isStrict: true }));
 
@@ -265,8 +252,7 @@ export default function AlarmScreen() {
       if (!isStrict) {
         const ampm = currentHour >= 12 ? 'PM' : 'AM';
         const displayH = currentHour % 12 === 0 ? 12 : currentHour % 12;
-        const timeStr = `${displayH.toString().padStart(2, '0')}:00 ${ampm}`;
-        allAlarms.push({ time: timeStr, isStrict: false });
+        allAlarms.push({ time: `${displayH.toString().padStart(2, '0')}:00 ${ampm}`, isStrict: false });
       }
       currentHour += intervalHours;
     }
@@ -281,7 +267,6 @@ export default function AlarmScreen() {
         <Text style={[styles.headerTitle, { color: theme.text }]}>Reminders</Text>
       </View>
 
-      {/* PRÓXIMA NOTIFICAÇÃO */}
       {nextNotification && (
         <View style={[styles.nextCard, { backgroundColor: theme.card }]}>
           <View style={[styles.nextIconBox, { backgroundColor: theme.iconBg }]}>
@@ -294,7 +279,6 @@ export default function AlarmScreen() {
         </View>
       )}
 
-      {/* SMART INTERVALS */}
       <View style={[styles.card, { backgroundColor: theme.card }]}>
         <View style={styles.cardHeader}>
           <View style={{ flex: 1 }}>
@@ -315,18 +299,16 @@ export default function AlarmScreen() {
           <View style={styles.intervalControls}>
             <TouchableOpacity
               style={[styles.timeBtn, { backgroundColor: theme.iconBg }]}
-              onPress={() => { setTimePickerTarget('start'); setShowTimeModal(true); }}
+              onPress={() => { setTimePickerTarget('start'); setSelectedHour(null); setShowTimeModal(true); }}
             >
               <Text style={[styles.timeBtnText, { color: theme.text }]}>Start: {intervalStart}</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={[styles.timeBtn, { backgroundColor: theme.iconBg }]}
-              onPress={() => { setTimePickerTarget('end'); setShowTimeModal(true); }}
+              onPress={() => { setTimePickerTarget('end'); setSelectedHour(null); setShowTimeModal(true); }}
             >
               <Text style={[styles.timeBtnText, { color: theme.text }]}>End: {intervalEnd}</Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               style={[styles.timeBtn, { backgroundColor: theme.iconBg }]}
               onPress={() => setShowIntervalModal(true)}
@@ -337,10 +319,9 @@ export default function AlarmScreen() {
         )}
       </View>
 
-      {/* STRICT REMINDERS */}
       <View style={styles.sectionHeaderRow}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Strict Reminders</Text>
-        <TouchableOpacity onPress={() => { setTimePickerTarget('specific'); setShowTimeModal(true); }}>
+        <TouchableOpacity onPress={() => { setTimePickerTarget('specific'); setSelectedHour(null); setShowTimeModal(true); }}>
           <Ionicons name="add-circle" size={28} color="#7B61FF" />
         </TouchableOpacity>
       </View>
@@ -348,11 +329,7 @@ export default function AlarmScreen() {
       {allAlarms.map((alarm, idx) => (
         <View key={idx} style={[styles.recordCard, { backgroundColor: theme.card }]}>
           <View style={[styles.iconBox, { backgroundColor: alarm.isStrict ? '#FFE5E5' : theme.iconBg }]}>
-            <Ionicons
-              name={alarm.isStrict ? "alert-circle" : "bulb"}
-              size={24}
-              color={alarm.isStrict ? "#FF4B4B" : "#7B61FF"}
-            />
+            <Ionicons name={alarm.isStrict ? "alert-circle" : "bulb"} size={24} color={alarm.isStrict ? "#FF4B4B" : "#7B61FF"} />
           </View>
           <View style={styles.recordInfo}>
             <Text style={[styles.recordTime, { color: theme.text }]}>{alarm.time}</Text>
@@ -368,27 +345,65 @@ export default function AlarmScreen() {
         </View>
       ))}
 
-      {/* TIME PICKER MODAL */}
+      {/* TIME PICKER MODAL — 2 etapas */}
       <Modal visible={showTimeModal} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Select Time</Text>
-            <View style={styles.timeListWrapper}>
-              <FlatList
-                data={TIMES}
-                keyExtractor={item => item}
-                showsVerticalScrollIndicator={false}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[styles.modalOption, { borderBottomColor: theme.border }]}
-                    onPress={() => handleTimeSelect(item)}
-                  >
-                    <Text style={[styles.modalOptionText, { color: theme.text }]}>{item}</Text>
-                  </TouchableOpacity>
-                )}
-              />
-            </View>
-            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowTimeModal(false)}>
+            {selectedHour === null ? (
+              <>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Select Hour</Text>
+                <View style={styles.timeListWrapper}>
+                  <FlatList
+                    data={HOURS}
+                    keyExtractor={item => item}
+                    showsVerticalScrollIndicator={false}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={[styles.modalOption, { borderBottomColor: theme.border }]}
+                        onPress={() => setSelectedHour(item)}
+                      >
+                        <Text style={[styles.modalOptionText, { color: theme.text }]}>{item}</Text>
+                      </TouchableOpacity>
+                    )}
+                  />
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>
+                  {selectedHour} — Select Minute
+                </Text>
+                <View style={styles.timeListWrapper}>
+                  <FlatList
+                    data={MINUTES}
+                    keyExtractor={item => item}
+                    showsVerticalScrollIndicator={false}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={[styles.modalOption, { borderBottomColor: theme.border }]}
+                        onPress={() => {
+                          const hourPart = selectedHour.split(' ')[0];
+                          const modifier = selectedHour.split(' ')[1];
+                          handleTimeSelect(`${hourPart}:${item} ${modifier}`);
+                        }}
+                      >
+                        <Text style={[styles.modalOptionText, { color: theme.text }]}>:{item}</Text>
+                      </TouchableOpacity>
+                    )}
+                  />
+                </View>
+                <TouchableOpacity
+                  style={[styles.modalCloseBtn, { backgroundColor: theme.iconBg, marginBottom: 10 }]}
+                  onPress={() => setSelectedHour(null)}
+                >
+                  <Text style={[styles.modalCloseText, { color: theme.text }]}>← Back</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => { setShowTimeModal(false); setSelectedHour(null); }}
+            >
               <Text style={styles.modalCloseText}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -417,6 +432,7 @@ export default function AlarmScreen() {
           </View>
         </View>
       </Modal>
+
       <View style={{ height: 100 }} />
     </ScrollView>
   );
@@ -450,6 +466,6 @@ const styles = StyleSheet.create({
   timeListWrapper: { maxHeight: 300 },
   modalOption: { paddingVertical: 18, borderBottomWidth: 1 },
   modalOptionText: { fontSize: 18, textAlign: 'center' },
-  modalCloseBtn: { marginTop: 20, padding: 15, backgroundColor: '#FFE5E5', borderRadius: 12, alignItems: 'center' },
+  modalCloseBtn: { marginTop: 10, padding: 15, backgroundColor: '#FFE5E5', borderRadius: 12, alignItems: 'center' },
   modalCloseText: { color: '#FF4B4B', fontWeight: 'bold', fontSize: 16 },
 });
