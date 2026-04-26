@@ -150,3 +150,31 @@ export function ozToMl(oz: number): number {
 export function convertAmount(amount_ml: number, useMetric: boolean): number {
   return useMetric ? amount_ml : mlToOz(amount_ml);
 }
+
+export async function addToTotalWater(amount_ml: number) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  // Busca o total atual e soma
+  const { data } = await supabase
+    .from('user_settings')
+    .select('total_water_ml')
+    .eq('user_id', user.id)
+    .single();
+
+  const currentTotal = data?.total_water_ml ?? 0;
+  await supabase
+    .from('user_settings')
+    .update({ total_water_ml: currentTotal + amount_ml })
+    .eq('user_id', user.id);
+}
+
+export async function getTotalWater(): Promise<number> {
+  const { data } = await supabase
+    .from('user_settings')
+    .select('total_water_ml')
+    .single();
+
+  return data?.total_water_ml ?? 0;
+}
+

@@ -39,6 +39,13 @@ function TabLayoutInner() {
           }}
         />
         <Tabs.Screen
+          name="badges"
+          options={{
+            title: 'Badges',
+            tabBarIcon: ({ color }) => <Ionicons name="trophy" size={24} color={color} />,
+          }}
+        />
+        <Tabs.Screen
           name="statistics"
           options={{
             title: 'Statistics',

@@ -13,6 +13,8 @@ import {
   upsertSettings,
   convertAmount,
   ozToMl,
+  addToTotalWater,
+  getTotalWater,
 } from '../../lib/waterService';
 
 const TROPICAL_COUNTRIES = ["Brazil", "Colombia", "Costa Rica", "Cuba", "Dominican Republic", "Ecuador", "Fiji", "Ghana", "Haiti", "Honduras", "Indonesia", "Ivory Coast", "Jamaica", "Kenya", "Malaysia", "Maldives", "Nicaragua", "Panama", "Papua New Guinea", "Peru", "Philippines", "Puerto Rico", "Senegal", "Singapore", "Sri Lanka", "Thailand", "Venezuela", "Vietnam"];
@@ -131,8 +133,11 @@ export default function HomeScreen() {
   async function handleAddWater(displayAmount: number) {
     const amountMl = isMetric ? displayAmount : ozToMl(displayAmount);
     const log = await addWaterLog(amountMl);
-    if (log) setCurrentIntakeMl(prev => prev + amountMl);
-  }
+    if (log) {
+      setCurrentIntakeMl(prev => prev + amountMl);
+      await addToTotalWater(amountMl); // ← linha nova
+    }
+}
 
   // Desfaz o ÚLTIMO registo (não apaga tudo)
   async function handleUndo() {
@@ -144,10 +149,14 @@ export default function HomeScreen() {
         {
           text: 'Undo', style: 'destructive',
           onPress: async () => {
+            // Guarda o total antes de apagar para saber quanto subtrair
+            const logsBefore = await getTodayTotal();
             const success = await deleteLastLog();
             if (success) {
               const newTotal = await getTodayTotal();
+              const difference = logsBefore - newTotal; // quanto foi removido
               setCurrentIntakeMl(newTotal);
+              await addToTotalWater(-difference); // subtrai do total acumulado
             }
           }
         }

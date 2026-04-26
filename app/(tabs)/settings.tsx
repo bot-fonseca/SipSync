@@ -1,10 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Switch, useColorScheme, DeviceEventEmitter } from 'react-native';
+import { View, Text, StyleSheet, Switch, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import { getSettings, upsertSettings } from '../../lib/waterService';
 import { useTheme } from '../../contexts/ThemeContext';
+import { supabase } from '../../lib/supabase';
 
 export default function SettingsScreen() {
   const { isDark, useSystemTheme, toggleSystemTheme, toggleDarkMode } = useTheme();
@@ -36,7 +37,10 @@ export default function SettingsScreen() {
     await toggleDarkMode(value);
     await AsyncStorage.setItem('@system_theme', JSON.stringify(false));
     await AsyncStorage.setItem('@dark_mode', JSON.stringify(value));
-    DeviceEventEmitter.emit('themeChanged', value);
+    // DeviceEventEmitter.emit('themeChanged', value);
+  }
+  async function handleLogout() {
+    await supabase.auth.signOut();
   }
 
   return (
@@ -88,8 +92,13 @@ export default function SettingsScreen() {
             trackColor={{ false: "#D1D1D1", true: "#E0E7FF" }}
           />
         </View>
-
       </View>
+      <TouchableOpacity
+          style={[styles.logoutBtn, { backgroundColor: theme.card }]}
+          onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={22} color="#FF4B4B" />
+          <Text style={styles.logoutText}>Log Out</Text>
+        </TouchableOpacity>
     </View>
   );
 }
@@ -101,4 +110,6 @@ const styles = StyleSheet.create({
   item: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderBottomWidth: 1 },
   itemLeft: { flexDirection: 'row', alignItems: 'center' },
   itemText: { marginLeft: 15, fontSize: 16, fontWeight: '600' },
+  logoutBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20, padding: 16, borderRadius: 15, borderWidth: 1, borderColor: '#FFE5E5' },
+  logoutText: { color: '#FF4B4B', fontWeight: 'bold', fontSize: 16, marginLeft: 10 },
 });
